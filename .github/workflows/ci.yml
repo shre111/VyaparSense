@@ -33,19 +33,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Install ruff + mypy
-        run: pip install ruff mypy
+      - name: Install ml package (dev)
+        working-directory: packages/ml
+        run: pip install -e ".[dev]"
       - name: Lint
-        run: ruff check . || echo "::warning::no python code yet"
+        working-directory: packages/ml
+        run: ruff check .
       - name: Format check
-        run: ruff format --check . || echo "::warning::no python code yet"
+        working-directory: packages/ml
+        run: ruff format --check .
+      - name: Typecheck
+        working-directory: packages/ml
+        run: mypy
       - name: Tests
-        run: |
-          if [ -d packages/ml ] && ls packages/ml/**/*.py >/dev/null 2>&1; then
-            pip install -e packages/ml && pytest -q packages/ml
-          else
-            echo "::warning::no ml package yet — skipping"
-          fi
+        working-directory: packages/ml
+        run: pytest
 
   web:
     name: Web (next.js)
