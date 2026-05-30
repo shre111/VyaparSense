@@ -1,0 +1,35 @@
+name: ✨ Feature (micro-issue)
+description: A single, reviewable unit of new functionality.
+title: "feat: "
+labels: ["feature"]
+body:
+  - type: input
+    id: phase
+    attributes:
+      label: Plan phase
+      description: Which phase in plan.md does this belong to?
+      placeholder: "Phase 2 — Dumb baselines"
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: What should exist when this is done? Keep it small (one PR's worth).
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Bullet list of checkable conditions.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / dependencies
+      description: Linked issues, ADRs, gotchas.

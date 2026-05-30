@@ -1,0 +1,16 @@
+# Normalize line endings
+* text=auto eol=lf
+
+# Treat these as binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
+*.parquet binary
+*.pkl binary
+*.joblib binary
+
+# Language stats: don't count samples/lockfiles as project code
+data/samples/** linguist-vendored
+*.lock linguist-generated
+package-lock.json linguist-generated

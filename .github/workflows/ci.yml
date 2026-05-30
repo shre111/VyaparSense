@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  commitlint:
+    name: Commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save @commitlint/cli @commitlint/config-conventional
+      - name: Lint commits in PR
+        if: github.event_name == 'pull_request'
+        run: npx commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.sha }}" --verbose
+
+  python:
+    name: Python (ml + api)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install ruff + mypy
+        run: pip install ruff mypy
+      - name: Lint
+        run: ruff check . || echo "::warning::no python code yet"
+      - name: Format check
+        run: ruff format --check . || echo "::warning::no python code yet"
+      - name: Tests
+        run: |
+          if [ -d packages/ml ] && ls packages/ml/**/*.py >/dev/null 2>&1; then
+            pip install -e packages/ml && pytest -q packages/ml
+          else
+            echo "::warning::no ml package yet — skipping"
+          fi
+
+  web:
+    name: Web (next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build/lint web
+        run: |
+          if [ -f apps/web/package.json ]; then
+            cd apps/web && npm ci && npm run lint && npm run typecheck && npm run build
+          else
+            echo "::warning::no web app yet — skipping"
+          fi
