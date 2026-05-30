@@ -11,8 +11,9 @@ requires-python = ">=3.11,<3.14"
 license = { text = "Proprietary" }
 authors = [{ name = "VyaparSense" }]
 dependencies = [
-    # Runtime deps are added in the feature PR that first uses them
-    # (e.g. pandas, statsforecast, lightgbm) to keep installs lean.
+    "pydantic>=2.7",
+    # Heavier deps (pandas, statsforecast, lightgbm) are added in the feature
+    # PR that first uses them, to keep installs lean.
 ]
 
 [project.optional-dependencies]

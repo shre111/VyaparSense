@@ -8,6 +8,21 @@ Subpackages (added across Phase 1-8):
 
 from __future__ import annotations
 
+from vyaparsense_ml.schema import (
+    CANONICAL_COLUMNS,
+    DemandPattern,
+    SalesRecord,
+    SalesValidationError,
+    validate_rows,
+)
+
 __version__ = "0.1.0"
 
-__all__ = ["__version__"]
+__all__ = [
+    "CANONICAL_COLUMNS",
+    "DemandPattern",
+    "SalesRecord",
+    "SalesValidationError",
+    "__version__",
+    "validate_rows",
+]
