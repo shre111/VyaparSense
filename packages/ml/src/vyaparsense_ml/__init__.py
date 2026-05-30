@@ -8,6 +8,7 @@ Subpackages (added across Phase 1-8):
 
 from __future__ import annotations
 
+from vyaparsense_ml.ingest import IngestError, read_sales_csv
 from vyaparsense_ml.schema import (
     CANONICAL_COLUMNS,
     DemandPattern,
@@ -21,8 +22,10 @@ __version__ = "0.1.0"
 __all__ = [
     "CANONICAL_COLUMNS",
     "DemandPattern",
+    "IngestError",
     "SalesRecord",
     "SalesValidationError",
     "__version__",
+    "read_sales_csv",
     "validate_rows",
 ]
