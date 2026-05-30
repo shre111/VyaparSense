@@ -3,12 +3,14 @@
 > Living scratchpad of where the project actually is. Update at the end of each work session. Newest at top.
 
 ## Snapshot (2026-05-31)
-- **Phase:** Phase 0 COMPLETE. Phase 1 (data spine) is next.
-- **Repo:** live at github.com/shre111/VyaparSense. `main` seeded; PR #6 (scaffold) merged; issues #1–5 closed.
+- **Phase:** Phase 0 COMPLETE. Phase 1 (data spine) IN PROGRESS — sample dataset + ML python project done.
+- **Repo:** live at github.com/shre111/VyaparSense. `main` protected (requires 3 CI checks + up-to-date branch; no force-push/delete). PRs #6, #8, #10 merged; issues #1–5, #7, #9 closed. No open issues.
 - **GitHub identity:** push/PRs go through `gh` as **shre111** (repo-local credential helper `credential.https://github.com.helper = !gh auth git-credential`). git author = Shreya Dantani. Do NOT push to `main` directly — feature branch + PR only.
-- **Docs created:** CLAUDE.md, decisions.md, plan.md, README.md, memory.md.
-- **Scaffold landed:** monorepo dirs, .gitignore/.gitattributes/.editorconfig, CONTRIBUTING, issue/PR templates, commitlint, pre-commit, Makefile, CI (commitlint+python+web, all green), docs/backlog.md.
-- **Toolchain:** git 2.50, node 22, python 3.13 (NOT 3.14 — too new for ML wheels), docker 28, gh 2.89. No `uv`.
+- **Shipped so far:**
+  - PR #6 — Phase 0 scaffold (monorepo dirs, .gitignore/.gitattributes/.editorconfig, CONTRIBUTING, issue/PR templates, commitlint, pre-commit, Makefile, CI, docs/backlog.md).
+  - PR #8 — synthetic dataset `data/samples/sales_history.csv` (2 stores × 8 SKUs × 730 days = 11,680 rows) + seeded stdlib generator `scripts/generate_sample_sales.py`. Verified 8/8 SKUs hit intended ADI/CV² quadrant.
+  - PR #10 — `packages/ml` python project: `vyaparsense_ml` (src layout, py3.11–3.13), ruff + mypy(strict) + pytest; CI now runs them for real.
+- **Toolchain:** git 2.50, node 22, python 3.13 (`python3.13`; NOT 3.14 — too new for ML wheels), docker 28, gh 2.89. No `uv`. Local dev venv: `packages/ml/.venv` (gitignored).
 
 ## Decided
 - **Brand: VyaparSense** (vyaparsense.com). Repo codename `kirana-demand`. (ADR-001)
@@ -26,15 +28,18 @@
 - License choice — user unsure. Default recommendation: keep private/proprietary now; revisit (MIT if open-sourcing the ML lib for portfolio).
 - Wedge — user unsure. Default: build D2C-first (clean Shopify/CSV data) while keeping ingestion generic so kirana/multi-store works too.
 
-## Next actions (Phase 1 — data spine)
-1. `feat(ml): define canonical sales-history schema + pydantic models` (cols: date, store_id, sku_id, units_sold, price, promo_flag).
-2. `chore: add docker-compose for postgres + redis` (infra/).
-3. `chore: add sample sales dataset under data/samples` — synthetic kirana/D2C with smooth/intermittent/erratic/lumpy SKUs.
-4. `feat(ml): CSV ingest + validation`, then cleaning, then demand classification (ADI/CV²).
-5. Set up Python env pinned to 3.13 in packages/ml (pyproject + ruff/mypy/pytest).
-6. Consider branch protection on `main` (require PR + CI) — ask user.
+## Next actions (Phase 1 — data spine, continued)
+1. `feat(ml): canonical sales-history schema + pydantic models` (date, store_id, sku_id, units_sold, price, promo_flag). First real `feat`.
+2. `feat(ml): CSV ingest + validation` (clear error messages), against data/samples.
+3. `feat(ml): data cleaning` (dedupe, calendar gap-fill, negative/return handling).
+4. `feat(ml): demand classification` (ADI/CV² → smooth/intermittent/erratic/lumpy) — logic already proven in PR #8 verification.
+5. `chore: docker-compose postgres + redis` (infra/); then Postgres schema + Alembic (append-only forecasts).
+
+Done: branch protection ✅; sample dataset ✅; packages/ml python project ✅.
 
 ## Notes / gotchas
+- `python3` resolves to 3.14 on this machine — always use `python3.13` for the ML venv.
+- Keep memory.md/doc-only edits in their own docs PR, not bundled with code PRs.
 - MAPE is misleading on intermittent (zero-heavy) demand — never select models on it.
 - Expect naive baselines to win for some SKUs; that's correct, keep them as permanent benchmark.
 - M5 evidence: LightGBM global model beats deep learning on this data shape — don't reach for N-BEATS/TFT early.
