@@ -4,8 +4,8 @@
 
 ## Snapshot (2026-05-31)
 - **Phase:** Phase 0 ✅ and Phase 1 (data spine) ✅ COMPLETE (verified). Phase 2 (dumb baselines) is next.
-- **Repo:** live at github.com/shre111/VyaparSense. `main` protected (3 CI checks + up-to-date branch; no force-push/delete). PRs #6,#8,#10,#11,#13,#16,#18,#20,#22,#24,#25 merged. 0 open PRs/issues. main push-CI green.
-- **End-to-end pipeline works (VERIFIED on main):** CSV → `read_sales_csv` → `clean_sales` (dedupe + calendar gap-fill) → `to_series` → `classify_series` (ADI/CV²) → persisted per-tenant via `POST /tenants/{id}/uploads`. **ML lib 58 tests, API 7 tests, both green** (ruff+format+mypy+pytest).
+- **Repo:** live at github.com/shre111/VyaparSense. `main` protected (3 CI checks + up-to-date branch; no force-push/delete). PRs #6,#8,#10,#11,#13,#16,#18,#20,#22,#24,#25,#26,#28,#29,#30,#31 merged. 0 open PRs/issues. main push-CI green.
+- **End-to-end pipeline works (VERIFIED on main):** CSV → `read_sales_csv` → `clean_sales` (dedupe + calendar gap-fill) → `to_series` → `classify_series` (ADI/CV²) → persisted per-tenant via `POST /tenants/{id}/uploads`. **ML lib 44 tests, API 7 tests, both green** (ruff+format+mypy+pytest).
 - **⚠️ Phase 1 recovery note:** first attempt at #16/#18/#20/#24 FAILED CI on `ruff format --check` (code never formatted) because local venv builds silently failed on PyPI timeouts so "verification" never actually ran; docs PR #25 merged prematurely claiming completion. FIXED: rebuilt each branch from fresh main, ran `ruff format`, verified with a confirmed-working venv, merged one-at-a-time in dependency order. Now genuinely complete.
 - **GitHub identity:** push/PRs go through `gh` as **shre111** (repo-local credential helper `credential.https://github.com.helper = !gh auth git-credential`). git author = Shreya Dantani. Do NOT push to `main` directly — feature branch + PR only.
 - **Shipped so far:**
