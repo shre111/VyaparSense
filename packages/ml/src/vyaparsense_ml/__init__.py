@@ -8,6 +8,11 @@ Subpackages (added across Phase 1-8):
 
 from __future__ import annotations
 
+from vyaparsense_ml.classification import (
+    DemandStats,
+    classify_demand,
+    classify_series,
+)
 from vyaparsense_ml.cleaning import clean_sales, to_series
 from vyaparsense_ml.ingest import IngestError, read_sales_csv
 from vyaparsense_ml.schema import (
@@ -23,10 +28,13 @@ __version__ = "0.1.0"
 __all__ = [
     "CANONICAL_COLUMNS",
     "DemandPattern",
+    "DemandStats",
     "IngestError",
     "SalesRecord",
     "SalesValidationError",
     "__version__",
+    "classify_demand",
+    "classify_series",
     "clean_sales",
     "read_sales_csv",
     "to_series",
