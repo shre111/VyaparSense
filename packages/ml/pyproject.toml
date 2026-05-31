@@ -19,8 +19,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
-    "ruff>=0.8",
-    "mypy>=1.13",
+    # Pinned so local == CI (drift here caused green-local/red-CI in Phase 1).
+    "ruff==0.15.15",
+    "mypy==1.13.0",
 ]
 
 [tool.hatch.build.targets.wheel]
