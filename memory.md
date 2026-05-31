@@ -5,7 +5,8 @@
 ## Snapshot (2026-05-31)
 - **Phase:** Phase 0 ✅ and Phase 1 (data spine) ✅ COMPLETE — all code verified on main. Phase 2 (dumb baselines) is next.
 - **Repo:** github.com/shre111/VyaparSense. `main` protected (3 CI checks + up-to-date branch; no force-push/delete). 0 open PRs, 0 open issues. main push-CI green. Only `main` branch remains on remote.
-- **End-to-end pipeline (verified green on main):** CSV → `read_sales_csv` → `clean_sales` (dedupe + calendar gap-fill) → `to_series` → `classify_series` (ADI/CV²) → persisted per-tenant via `POST /tenants/{id}/uploads`. **ML lib 53 tests, API 7 tests** — ruff + ruff-format + mypy(strict) + pytest all pass in CI.
+- **End-to-end pipeline (verified green on main):** CSV → `read_sales_csv` → `clean_sales` (dedupe + calendar gap-fill) → `to_series` → `classify_series` (ADI/CV²) → persisted per-tenant via `POST /tenants/{id}/uploads`. **ML lib 44 tests, API 7 tests** — ruff + ruff-format + mypy(strict) + pytest all pass in CI.
+- **Tooling pinned (PR #30):** `ruff==0.15.15`, `mypy==1.13.0` in both pyproject dev extras, so local == CI. This was the root-cause fix for Phase 1's green-local/red-CI thrash (unpinned tools let CI pull newer ruff that flagged B008 `Depends()`-in-defaults; API now uses `SessionDep = Annotated[...]`). API finally landed cleanly in PR #31.
 - **GitHub identity:** push/PRs via `gh` as **shre111** (repo-local helper `credential.https://github.com.helper = !gh auth git-credential`). git author = Shreya Dantani. Never push to `main` directly — feature branch + PR + squash-merge.
 
 ## Shipped (Phase 0 + 1)
