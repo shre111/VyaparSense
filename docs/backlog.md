@@ -2,24 +2,25 @@
 
 Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](../plan.md)). Check off as issues are created/closed. This is the source for `gh issue create`.
 
-## Phase 0 — Foundations
-- [ ] `chore: scaffold monorepo structure (apps/web, apps/api, packages/ml)`
-- [ ] `chore: add .gitignore, .gitattributes, .editorconfig`
-- [ ] `chore: add issue + PR templates`
-- [ ] `chore: add CONTRIBUTING with branch/commit conventions`
-- [ ] `chore: add commitlint + pre-commit config`
-- [ ] `chore: add CI workflow (commitlint, python lint/test, web build)`
-- [ ] `chore: add docker-compose for postgres + redis`
-- [ ] `chore: add sample sales dataset under data/samples`
-- [ ] `docs: add LICENSE` (decision pending)
+## Phase 0 — Foundations ✅
+- [x] `chore: scaffold monorepo structure (apps/web, apps/api, packages/ml)` (#6)
+- [x] `chore: add .gitignore, .gitattributes, .editorconfig` (#6)
+- [x] `chore: add issue + PR templates` (#6)
+- [x] `chore: add CONTRIBUTING with branch/commit conventions` (#6)
+- [x] `chore: add commitlint + pre-commit config` (#6)
+- [x] `chore: add CI workflow (commitlint, python lint/test, web build)` (#6)
+- [x] `chore: add docker-compose for postgres + redis` (#22)
+- [x] `chore: add sample sales dataset under data/samples` (#8)
+- [x] `chore: set up packages/ml python project (ruff/mypy/pytest)` (#10)
+- [ ] `docs: add LICENSE` (decision pending — user unsure; default proprietary)
 
-## Phase 1 — Data spine
-- [ ] `feat(ml): define canonical sales-history schema + pydantic models`
-- [ ] `feat(ml): CSV ingest with validation + helpful error messages`
-- [ ] `feat(ml): data cleaning (dedupe, calendar gap-fill, negative/return handling)`
-- [ ] `feat(ml): demand classification (ADI & CV² → smooth/intermittent/erratic/lumpy)`
-- [ ] `feat(api): Postgres schema + Alembic migrations (append-only forecasts)`
-- [ ] `feat(api): upload endpoint → store raw + parsed series`
+## Phase 1 — Data spine ✅
+- [x] `feat(ml): define canonical sales-history schema + pydantic models` (#13)
+- [x] `feat(ml): CSV ingest with validation + helpful error messages` (#16)
+- [x] `feat(ml): data cleaning (dedupe, calendar gap-fill, negative/return handling)` (#18)
+- [x] `feat(ml): demand classification (ADI & CV² → smooth/intermittent/erratic/lumpy)` (#20)
+- [x] `feat(api): Postgres schema + Alembic migrations (append-only forecasts)` (#24)
+- [x] `feat(api): upload endpoint → store raw + parsed series` (#24)
 
 ## Phase 2 — Dumb baselines
 - [ ] `feat(ml): naive, moving-average, seasonal-naive models`
