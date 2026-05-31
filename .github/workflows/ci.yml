@@ -33,21 +33,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Install ml package (dev)
+      - name: Install packages
+        run: |
+          pip install -e "packages/ml[dev]"
+          pip install -e "apps/api[dev]"
+      - name: ml — lint / format / typecheck / test
         working-directory: packages/ml
-        run: pip install -e ".[dev]"
-      - name: Lint
-        working-directory: packages/ml
-        run: ruff check .
-      - name: Format check
-        working-directory: packages/ml
-        run: ruff format --check .
-      - name: Typecheck
-        working-directory: packages/ml
-        run: mypy
-      - name: Tests
-        working-directory: packages/ml
-        run: pytest
+        run: |
+          ruff check .
+          ruff format --check .
+          mypy
+          pytest
+      - name: api — lint / format / typecheck / test
+        working-directory: apps/api
+        run: |
+          ruff check .
+          ruff format --check .
+          mypy
+          pytest
 
   web:
     name: Web (next.js)
