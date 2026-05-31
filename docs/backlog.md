@@ -22,11 +22,11 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(api): Postgres schema + Alembic migrations (append-only forecasts)` (#24)
 - [x] `feat(api): upload endpoint → store raw + parsed series` (#24)
 
-## Phase 2 — Dumb baselines
-- [ ] `feat(ml): naive, moving-average, seasonal-naive models`
-- [ ] `feat(ml): backtesting harness (rolling-origin / expanding window)`
-- [ ] `feat(ml): metrics (WAPE, MASE, RMSE, bias, MAPE-display)`
-- [ ] `feat(ml): per-series model selection by backtest`
+## Phase 2 — Dumb baselines ✅
+- [x] `feat(ml): naive, moving-average, seasonal-naive models` (#33)
+- [x] `feat(ml): backtesting harness (rolling-origin / expanding window)` (#33)
+- [x] `feat(ml): metrics (WAPE, MASE, RMSE, bias, MAPE-display)` (#33)
+- [x] `feat(ml): per-series model selection by backtest` (#33)
 
 ## Phase 3 — Classical & intermittent
 - [ ] `feat(ml): ETS + AutoARIMA via statsforecast`
