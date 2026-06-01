@@ -28,10 +28,10 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(ml): metrics (WAPE, MASE, RMSE, bias, MAPE-display)` (#33)
 - [x] `feat(ml): per-series model selection by backtest` (#33)
 
-## Phase 3 — Classical & intermittent
+## Phase 3 — Classical & intermittent ✅
 - [x] `feat(ml): ETS + AutoARIMA via statsforecast` (#36)
 - [x] `feat(ml): Croston / SBA / TSB for intermittent SKUs` (#38)
-- [ ] `feat(ml): probabilistic/quantile forecasts`
+- [x] `feat(ml): probabilistic/quantile forecasts` (#40 metrics, #41 forecaster + backtest)
 
 ## Phase 4 — Global ML model
 - [ ] `feat(ml): feature engineering (calendar, price, promo, lags, rolling)`
