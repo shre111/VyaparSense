@@ -10,8 +10,9 @@ Public API::
         Naive, MovingAverage, SeasonalNaive,        # baseline models
         AutoETS, AutoARIMA,                         # classical models
         Croston, CrostonSBA, TSB,                   # intermittent models
-        wape, mase, rmse, bias, mape,               # metrics
+        wape, mase, rmse, bias, mape,               # point metrics
         ForecastMetrics, compute_metrics,
+        pinball_loss, mean_pinball_loss, coverage,  # quantile metrics
         backtest, BacktestResult, BacktestFold,     # backtesting
         select_model, select_per_series, SelectionResult,
     )
@@ -49,6 +50,11 @@ from vyaparsense_ml.forecasting.models import (
     Naive,
     SeasonalNaive,
 )
+from vyaparsense_ml.forecasting.quantile_metrics import (
+    coverage,
+    mean_pinball_loss,
+    pinball_loss,
+)
 from vyaparsense_ml.forecasting.selection import (
     SelectionResult,
     select_model,
@@ -72,9 +78,12 @@ __all__ = [
     "backtest",
     "bias",
     "compute_metrics",
+    "coverage",
     "mae",
     "mape",
     "mase",
+    "mean_pinball_loss",
+    "pinball_loss",
     "rmse",
     "select_model",
     "select_per_series",
