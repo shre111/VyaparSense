@@ -15,6 +15,8 @@ Public API::
         pinball_loss, mean_pinball_loss, coverage,  # quantile metrics
         backtest, BacktestResult, BacktestFold,     # backtesting
         select_model, select_per_series, SelectionResult,
+        EmpiricalQuantileForecaster,                # probabilistic forecasting
+        quantile_backtest, QuantileBacktestResult,
     )
 """
 
@@ -50,6 +52,14 @@ from vyaparsense_ml.forecasting.models import (
     Naive,
     SeasonalNaive,
 )
+from vyaparsense_ml.forecasting.quantile import (
+    EmpiricalQuantileForecaster,
+    QuantileForecaster,
+)
+from vyaparsense_ml.forecasting.quantile_backtest import (
+    QuantileBacktestResult,
+    quantile_backtest,
+)
 from vyaparsense_ml.forecasting.quantile_metrics import (
     coverage,
     mean_pinball_loss,
@@ -70,9 +80,12 @@ __all__ = [
     "Baseline",
     "Croston",
     "CrostonSBA",
+    "EmpiricalQuantileForecaster",
     "ForecastMetrics",
     "MovingAverage",
     "Naive",
+    "QuantileBacktestResult",
+    "QuantileForecaster",
     "SeasonalNaive",
     "SelectionResult",
     "backtest",
@@ -84,6 +97,7 @@ __all__ = [
     "mase",
     "mean_pinball_loss",
     "pinball_loss",
+    "quantile_backtest",
     "rmse",
     "select_model",
     "select_per_series",
