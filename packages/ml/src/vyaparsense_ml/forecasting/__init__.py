@@ -9,6 +9,7 @@ Public API::
     from vyaparsense_ml.forecasting import (
         Naive, MovingAverage, SeasonalNaive,        # baseline models
         AutoETS, AutoARIMA,                         # classical models
+        Croston, CrostonSBA, TSB,                   # intermittent models
         wape, mase, rmse, bias, mape,               # metrics
         ForecastMetrics, compute_metrics,
         backtest, BacktestResult, BacktestFold,     # backtesting
@@ -26,6 +27,11 @@ from vyaparsense_ml.forecasting.backtest import (
 from vyaparsense_ml.forecasting.classical import (
     AutoARIMA,
     AutoETS,
+)
+from vyaparsense_ml.forecasting.intermittent import (
+    TSB,
+    Croston,
+    CrostonSBA,
 )
 from vyaparsense_ml.forecasting.metrics import (
     ForecastMetrics,
@@ -50,11 +56,14 @@ from vyaparsense_ml.forecasting.selection import (
 )
 
 __all__ = [
+    "TSB",
     "AutoARIMA",
     "AutoETS",
     "BacktestFold",
     "BacktestResult",
     "Baseline",
+    "Croston",
+    "CrostonSBA",
     "ForecastMetrics",
     "MovingAverage",
     "Naive",
