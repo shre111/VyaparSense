@@ -3,9 +3,9 @@
 > Living scratchpad of where the project actually is. Update at the end of each work session. Newest at top.
 
 ## Snapshot (2026-06-02)
-- **Phase:** Phase 0 ✅, Phase 1 ✅, Phase 2 ✅, **Phase 3 (classical & intermittent) ✅ COMPLETE** — ETS/AutoARIMA (#36), Croston/SBA/TSB (#38), probabilistic/quantile forecasts (#40 metrics, #41 forecaster+backtest). All code verified on `main`. **Phase 4 (global LightGBM) is next.**
+- **Phase:** Phase 0-3 ✅ COMPLETE. **Phase 4 (global ML model) IN PROGRESS** — feature engineering done (#43); LightGBM global model + model cards remain. All code verified on `main`.
 - **Repo:** github.com/shre111/VyaparSense. `main` protected (3 CI checks + up-to-date branch; no force-push/delete). main push-CI green. Only `main` branch remains on remote.
-- **End-to-end pipeline (verified green on main):** CSV → `read_sales_csv` → `clean_sales` (dedupe + calendar gap-fill) → `to_series` → `classify_series` (ADI/CV²) → persisted per-tenant via `POST /tenants/{id}/uploads`. Forecasting: `select_per_series` runs an expanding-window backtest of all candidate models (baselines + classical + intermittent) and picks the lowest pooled-WAPE per series; probabilistic forecasts via `EmpiricalQuantileForecaster` + `quantile_backtest` (pinball/coverage). **ML lib 154 tests, API 7 tests** — ruff + ruff-format + mypy(strict) + pytest all pass in CI.
+- **End-to-end pipeline (verified green on main):** CSV → `read_sales_csv` → `clean_sales` (dedupe + calendar gap-fill) → `to_series` → `classify_series` (ADI/CV²) → persisted per-tenant via `POST /tenants/{id}/uploads`. Forecasting: `select_per_series` runs an expanding-window backtest of all candidate models (baselines + classical + intermittent) and picks the lowest pooled-WAPE per series; probabilistic forecasts via `EmpiricalQuantileForecaster` + `quantile_backtest` (pinball/coverage). Global-model feature frame via `build_features` (calendar/price/promo/lags/rolling, leakage-safe). **ML lib 163 tests, API 7 tests** — ruff + ruff-format + mypy(strict) + pytest all pass in CI.
 - **Tooling pinned (PR #30):** `ruff==0.15.15`, `mypy==1.13.0` in both pyproject dev extras, so local == CI. Root-cause fix for Phase 1's green-local/red-CI thrash (unpinned tools let CI pull newer ruff that flagged B008 `Depends()`-in-defaults; API uses `SessionDep = Annotated[...]`). API landed cleanly in PR #31.
 - **GitHub identity:** push/PRs via `gh` as **shre111** (gh keyring auth, token scopes incl. repo/workflow). Repo-local git author = `shre111 <155060758+shre111@users.noreply.github.com>` to match existing history. Never push to `main` directly — feature branch + PR + squash-merge.
 
@@ -36,6 +36,9 @@
 - PR #40 — `forecasting/quantile_metrics.py`: `pinball_loss`/`mean_pinball_loss` (selection metric for probabilistic forecasts; pinball@0.5 = ½·MAE) + `coverage` (calibration diagnostic). Pure stdlib, +11 tests (124→135).
 - PR #41 — `forecasting/quantile.py` + `quantile_backtest.py`: `QuantileForecaster` protocol + `EmpiricalQuantileForecaster` (wraps ANY `Baseline`; quantile = point + empirical-quantile of in-sample one-step residuals, clamped ≥0; model-agnostic/conformal — chosen because statsforecast interval support is inconsistent: ETS/ARIMA take `level=`, Croston family raises without conformal `prediction_intervals`). `quantile_backtest` mirrors the point harness, scored with pinball + coverage. +19 tests (135→154). **Calibration backtest** (Empirical[MA7], q={.5,.9,.95}, same protocol): mean coverage cov@.90=0.90, cov@.95=0.94 (well-calibrated where safety stock needs it); cov@.50=0.64 over-covers — entirely the intermittent/lumpy SKUs (zeros dominate → empirical residual median ≥0); smooth SKUs land on 0.50. Expected, reported honestly.
 
+## Shipped (Phase 4, in progress)
+- PR #43 — `forecasting/features.py`: `build_features(records, *, lags=(1,7,14), roll_windows=(7,28), dropna=True)` → pandas DataFrame, one row per (store,sku,date), for the global model. Calendar (dow/is_weekend/month/dayofyear/weekofyear + cyclical sin/cos), price/promo passthrough, lags, leakage-safe rolling mean/std (`groupby.transform(s.shift(1).rolling(w))` — window ends at t-1, never crosses series boundary; both asserted in tests). Declared `pandas>=2.0`. +9 tests (154→163). Sanity build on sample: 11232 rows × 22 cols, 16 series, 0 NaN after dropna (first 28 days dropped for roll_28 warmup).
+
 ## Decided
 - **Brand: VyaparSense** (vyaparsense.com). Repo codename `kirana-demand`. (ADR-001)
 - **Auth: custom** — FastAPI Argon2id + JWT access + rotating refresh cookies. No third-party. (ADR-006)
@@ -50,9 +53,9 @@
 - ADR-010 pricing tiers per market (later). License (user unsure; default proprietary). Wedge (default D2C-first, generic ingestion).
 
 ## Next actions (Phase 4 — global ML model)
-Phase 3 is fully done. Per `docs/backlog.md` Phase 4:
-1. `feat(ml): feature engineering (calendar, price, promo, lags, rolling)` — NEXT. The sample CSV already carries `price`/`promo_flag`; build a feature frame across all series.
-2. `feat(ml): LightGBM global model (recursive multi-step)` — the M5-winning pattern; one model across all SKUs/stores. **First new heavy dep `lightgbm`** (add in this PR; verify it has a 3.13 wheel like statsforecast did). Must beat the Phase 3 per-series champions on the same backtest or document why not.
+Per `docs/backlog.md` Phase 4:
+1. ✅ `feat(ml): feature engineering (calendar, price, promo, lags, rolling)` (#43, done) — `build_features` produces the leakage-safe frame.
+2. `feat(ml): LightGBM global model (recursive multi-step)` — NEXT. The M5-winning pattern; one model across all SKUs/stores trained on `build_features` output. **First new heavy dep `lightgbm`** (add in this PR; verify it has a 3.13 wheel like statsforecast did). Needs a `Baseline`-compatible wrapper so it drops into the existing backtest/`select_per_series` — but it's a GLOBAL model (fit once across series) vs the per-series point models, so expect to fit on all-but-the-holdout once per fold, or design a global backtest path. Must beat the Phase 3 per-series champions on the same backtest or document why not. Recursive multi-step: feed each prediction back as the next lag.
 3. `feat(ml): model card generation per training run` (data hash, features, params, metrics → `docs/model-cards/`).
 - Each rung must beat the prior models on the same per-series backtest, or document why not.
 - Cross-cutting (after Phase 4 or interleaved): wire selection into `POST /tenants/{id}/forecasts` persisting into append-only `forecasts` → enables the accuracy-over-time chart (the flywheel/hero visual).
