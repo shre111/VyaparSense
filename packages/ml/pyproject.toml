@@ -12,8 +12,11 @@ license = { text = "Proprietary" }
 authors = [{ name = "VyaparSense" }]
 dependencies = [
     "pydantic>=2.7",
-    # Heavier deps (pandas, statsforecast, lightgbm) are added in the feature
-    # PR that first uses them, to keep installs lean.
+    # Classical forecasting (Phase 3): ETS / AutoARIMA. Pulls numpy transitively
+    # but we import it directly, so it is declared explicitly.
+    "statsforecast>=2.0",
+    "numpy>=1.26",
+    # Heavier deps (lightgbm) are added in the feature PR that first uses them.
 ]
 
 [project.optional-dependencies]
