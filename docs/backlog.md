@@ -29,7 +29,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(ml): per-series model selection by backtest` (#33)
 
 ## Phase 3 — Classical & intermittent
-- [ ] `feat(ml): ETS + AutoARIMA via statsforecast`
+- [x] `feat(ml): ETS + AutoARIMA via statsforecast` (#36)
 - [ ] `feat(ml): Croston / SBA / TSB for intermittent SKUs`
 - [ ] `feat(ml): probabilistic/quantile forecasts`
 
