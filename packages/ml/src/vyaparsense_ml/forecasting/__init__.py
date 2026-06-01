@@ -17,6 +17,7 @@ Public API::
         select_model, select_per_series, SelectionResult,
         EmpiricalQuantileForecaster,                # probabilistic forecasting
         quantile_backtest, QuantileBacktestResult,
+        build_features,                             # global-model features
     )
 """
 
@@ -30,6 +31,9 @@ from vyaparsense_ml.forecasting.backtest import (
 from vyaparsense_ml.forecasting.classical import (
     AutoARIMA,
     AutoETS,
+)
+from vyaparsense_ml.forecasting.features import (
+    build_features,
 )
 from vyaparsense_ml.forecasting.intermittent import (
     TSB,
@@ -90,6 +94,7 @@ __all__ = [
     "SelectionResult",
     "backtest",
     "bias",
+    "build_features",
     "compute_metrics",
     "coverage",
     "mae",

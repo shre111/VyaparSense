@@ -16,6 +16,9 @@ dependencies = [
     # but we import it directly, so it is declared explicitly.
     "statsforecast>=2.0",
     "numpy>=1.26",
+    # Feature engineering for the global model (Phase 4). statsforecast already
+    # pulls pandas, but features.py imports it directly so it is declared here.
+    "pandas>=2.0",
     # Heavier deps (lightgbm) are added in the feature PR that first uses them.
 ]
 
