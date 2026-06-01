@@ -7,7 +7,8 @@ later must beat these on the same rolling backtest before it earns its place.
 Public API::
 
     from vyaparsense_ml.forecasting import (
-        Naive, MovingAverage, SeasonalNaive,        # models
+        Naive, MovingAverage, SeasonalNaive,        # baseline models
+        AutoETS, AutoARIMA,                         # classical models
         wape, mase, rmse, bias, mape,               # metrics
         ForecastMetrics, compute_metrics,
         backtest, BacktestResult, BacktestFold,     # backtesting
@@ -21,6 +22,10 @@ from vyaparsense_ml.forecasting.backtest import (
     BacktestFold,
     BacktestResult,
     backtest,
+)
+from vyaparsense_ml.forecasting.classical import (
+    AutoARIMA,
+    AutoETS,
 )
 from vyaparsense_ml.forecasting.metrics import (
     ForecastMetrics,
@@ -45,6 +50,8 @@ from vyaparsense_ml.forecasting.selection import (
 )
 
 __all__ = [
+    "AutoARIMA",
+    "AutoETS",
     "BacktestFold",
     "BacktestResult",
     "Baseline",
