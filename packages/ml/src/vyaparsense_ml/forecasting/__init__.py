@@ -17,7 +17,9 @@ Public API::
         select_model, select_per_series, SelectionResult,
         EmpiricalQuantileForecaster,                # probabilistic forecasting
         quantile_backtest, QuantileBacktestResult,
-        build_features,                             # global-model features
+        build_features, feature_columns,            # global-model features
+        GlobalLightGBM,                             # global ML model
+        global_backtest, GlobalBacktestResult,
     )
 """
 
@@ -34,6 +36,14 @@ from vyaparsense_ml.forecasting.classical import (
 )
 from vyaparsense_ml.forecasting.features import (
     build_features,
+    feature_columns,
+)
+from vyaparsense_ml.forecasting.global_backtest import (
+    GlobalBacktestResult,
+    global_backtest,
+)
+from vyaparsense_ml.forecasting.global_model import (
+    GlobalLightGBM,
 )
 from vyaparsense_ml.forecasting.intermittent import (
     TSB,
@@ -86,6 +96,8 @@ __all__ = [
     "CrostonSBA",
     "EmpiricalQuantileForecaster",
     "ForecastMetrics",
+    "GlobalBacktestResult",
+    "GlobalLightGBM",
     "MovingAverage",
     "Naive",
     "QuantileBacktestResult",
@@ -97,6 +109,8 @@ __all__ = [
     "build_features",
     "compute_metrics",
     "coverage",
+    "feature_columns",
+    "global_backtest",
     "mae",
     "mape",
     "mase",

@@ -19,7 +19,8 @@ dependencies = [
     # Feature engineering for the global model (Phase 4). statsforecast already
     # pulls pandas, but features.py imports it directly so it is declared here.
     "pandas>=2.0",
-    # Heavier deps (lightgbm) are added in the feature PR that first uses them.
+    # Global ML model (Phase 4): gradient-boosted demand model (the M5 pattern).
+    "lightgbm>=4.0",
 ]
 
 [project.optional-dependencies]
