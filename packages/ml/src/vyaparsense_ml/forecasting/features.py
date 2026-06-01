@@ -45,6 +45,35 @@ DEFAULT_ROLL_WINDOWS: tuple[int, ...] = (7, 28)
 
 _GROUP_KEYS = [COL_STORE_ID, COL_SKU_ID]
 
+CALENDAR_FEATURES: tuple[str, ...] = (
+    "dayofweek",
+    "is_weekend",
+    "month",
+    "dayofyear",
+    "weekofyear",
+    "dow_sin",
+    "dow_cos",
+    "month_sin",
+    "month_cos",
+)
+
+
+def feature_columns(
+    lags: Sequence[int] = DEFAULT_LAGS,
+    roll_windows: Sequence[int] = DEFAULT_ROLL_WINDOWS,
+) -> list[str]:
+    """The model-input columns produced by :func:`build_features`, in order.
+
+    Calendar + price/promo + lag + rolling columns (excludes the keys
+    ``date``/``store_id``/``sku_id`` and the ``units_sold`` target). Single
+    source of truth so models and the feature builder cannot drift apart.
+    """
+    cols = [*CALENDAR_FEATURES, COL_PRICE, COL_PROMO_FLAG]
+    cols += [f"lag_{lag}" for lag in lags]
+    for w in roll_windows:
+        cols += [f"roll_mean_{w}", f"roll_std_{w}"]
+    return cols
+
 
 def _records_to_frame(records: Sequence[SalesRecord]) -> pd.DataFrame:
     """Build a sorted long DataFrame from validated records."""
