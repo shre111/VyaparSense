@@ -3,9 +3,9 @@
 > Living scratchpad of where the project actually is. Update at the end of each work session. Newest at top.
 
 ## Snapshot (2026-06-02)
-- **Phase:** Phase 0-3 ✅ COMPLETE. **Phase 4 (global ML model) IN PROGRESS** — feature engineering done (#43); LightGBM global model + model cards remain. All code verified on `main`.
+- **Phase:** Phase 0-3 ✅ COMPLETE. **Phase 4 (global ML model) IN PROGRESS** — feature engineering (#43) and global LightGBM model + global backtest (#45) done; only `feat(ml): model card generation` remains. All code verified on `main`.
 - **Repo:** github.com/shre111/VyaparSense. `main` protected (3 CI checks + up-to-date branch; no force-push/delete). main push-CI green. Only `main` branch remains on remote.
-- **End-to-end pipeline (verified green on main):** CSV → `read_sales_csv` → `clean_sales` (dedupe + calendar gap-fill) → `to_series` → `classify_series` (ADI/CV²) → persisted per-tenant via `POST /tenants/{id}/uploads`. Forecasting: `select_per_series` runs an expanding-window backtest of all candidate models (baselines + classical + intermittent) and picks the lowest pooled-WAPE per series; probabilistic forecasts via `EmpiricalQuantileForecaster` + `quantile_backtest` (pinball/coverage). Global-model feature frame via `build_features` (calendar/price/promo/lags/rolling, leakage-safe). **ML lib 163 tests, API 7 tests** — ruff + ruff-format + mypy(strict) + pytest all pass in CI.
+- **End-to-end pipeline (verified green on main):** CSV → `read_sales_csv` → `clean_sales` (dedupe + calendar gap-fill) → `to_series` → `classify_series` (ADI/CV²) → persisted per-tenant via `POST /tenants/{id}/uploads`. Forecasting: `select_per_series` runs an expanding-window backtest of all candidate models (baselines + classical + intermittent) and picks the lowest pooled-WAPE per series; probabilistic forecasts via `EmpiricalQuantileForecaster` + `quantile_backtest` (pinball/coverage). Global-model feature frame via `build_features` (calendar/price/promo/lags/rolling, leakage-safe); global `GlobalLightGBM` (recursive multi-step) scored by `global_backtest`. **ML lib 173 tests, API 7 tests** — ruff + ruff-format + mypy(strict) + pytest all pass in CI.
 - **Tooling pinned (PR #30):** `ruff==0.15.15`, `mypy==1.13.0` in both pyproject dev extras, so local == CI. Root-cause fix for Phase 1's green-local/red-CI thrash (unpinned tools let CI pull newer ruff that flagged B008 `Depends()`-in-defaults; API uses `SessionDep = Annotated[...]`). API landed cleanly in PR #31.
 - **GitHub identity:** push/PRs via `gh` as **shre111** (gh keyring auth, token scopes incl. repo/workflow). Repo-local git author = `shre111 <155060758+shre111@users.noreply.github.com>` to match existing history. Never push to `main` directly — feature branch + PR + squash-merge.
 
@@ -38,6 +38,7 @@
 
 ## Shipped (Phase 4, in progress)
 - PR #43 — `forecasting/features.py`: `build_features(records, *, lags=(1,7,14), roll_windows=(7,28), dropna=True)` → pandas DataFrame, one row per (store,sku,date), for the global model. Calendar (dow/is_weekend/month/dayofyear/weekofyear + cyclical sin/cos), price/promo passthrough, lags, leakage-safe rolling mean/std (`groupby.transform(s.shift(1).rolling(w))` — window ends at t-1, never crosses series boundary; both asserted in tests). Declared `pandas>=2.0`. +9 tests (154→163). Sanity build on sample: 11232 rows × 22 cols, 16 series, 0 NaN after dropna (first 28 days dropped for roll_28 warmup).
+- PR #45 — `forecasting/global_model.py` `GlobalLightGBM` (one booster across all series, M5 pattern; `regression_l1`, seeded) + `forecasting/global_backtest.py` `global_backtest` (rolling-origin over shared cutoff dates, fit-once-per-fold, pooled WAPE comparable to per-series). Recursive multi-step (predict→append→rebuild features via same `build_features`→repeat; clamp ≥0). Refactored `features.py` to expose `feature_columns()`/`CALENDAR_FEATURES` (single source of truth). Declared `lightgbm>=4.0` (4.6.0 has 3.13 wheel; deterministic w/ seed). +10 tests (163→173). **Honest backtest (apples-to-apples, 4 weekly folds, ~1.5y warmup): GLOBAL WINS — pooled WAPE 0.4129 vs per-series best-of-8 champions 0.4242 (~2.7% better), bias ≈ -0.2.** One global model beats the cherry-picked per-series ensemble → reproduces M5 on our data; rung earned. (Pooled MASE reads high — artifact of scaling against one series' naive across heterogeneous pool; WAPE is primary per ADR-005.) Note: `GlobalLightGBM` is NOT a per-series `Baseline` (fits across series), so it has its own fit/forecast API + backtest, not wired into `select_per_series` yet.
 
 ## Decided
 - **Brand: VyaparSense** (vyaparsense.com). Repo codename `kirana-demand`. (ADR-001)
@@ -54,12 +55,12 @@
 
 ## Next actions (Phase 4 — global ML model)
 Per `docs/backlog.md` Phase 4:
-1. ✅ `feat(ml): feature engineering (calendar, price, promo, lags, rolling)` (#43, done) — `build_features` produces the leakage-safe frame.
-2. `feat(ml): LightGBM global model (recursive multi-step)` — NEXT. The M5-winning pattern; one model across all SKUs/stores trained on `build_features` output. **First new heavy dep `lightgbm`** (add in this PR; verify it has a 3.13 wheel like statsforecast did). Needs a `Baseline`-compatible wrapper so it drops into the existing backtest/`select_per_series` — but it's a GLOBAL model (fit once across series) vs the per-series point models, so expect to fit on all-but-the-holdout once per fold, or design a global backtest path. Must beat the Phase 3 per-series champions on the same backtest or document why not. Recursive multi-step: feed each prediction back as the next lag.
-3. `feat(ml): model card generation per training run` (data hash, features, params, metrics → `docs/model-cards/`).
-- Each rung must beat the prior models on the same per-series backtest, or document why not.
-- Cross-cutting (after Phase 4 or interleaved): wire selection into `POST /tenants/{id}/forecasts` persisting into append-only `forecasts` → enables the accuracy-over-time chart (the flywheel/hero visual).
-- Note: the harness is point-forecast for selection; probabilistic side is separate (`EmpiricalQuantileForecaster`/`quantile_backtest`). A global LightGBM can also produce quantiles (quantile objective) later if needed.
+1. ✅ `feat(ml): feature engineering` (#43, done) — `build_features` leakage-safe frame.
+2. ✅ `feat(ml): LightGBM global model (recursive multi-step)` (#45, done) — `GlobalLightGBM` + `global_backtest`; beats per-series champions (0.4129 vs 0.4242).
+3. `feat(ml): model card generation per training run` — NEXT, last Phase 4 item. Per CLAUDE.md §7: each training run records data hash, feature config, params, metrics → a markdown card under `docs/model-cards/` (the dir exists with `.gitkeep`). Likely a small `model_card.py` producing a dataclass + `to_markdown()`, fed the `GlobalBacktestResult` + dataset hash. Pure stdlib (hashlib).
+- Each rung must beat the prior models on the same backtest, or document why not.
+- Cross-cutting (after Phase 4): wire selection + global model into `POST /tenants/{id}/forecasts` persisting into append-only `forecasts` → enables the accuracy-over-time chart (the flywheel/hero visual). `GlobalLightGBM` is NOT a `Baseline` (fits across series) — integration must handle both the per-series `select_per_series` path and the global path.
+- Note: selection harness is point-forecast; probabilistic side is separate (`EmpiricalQuantileForecaster`/`quantile_backtest`). A global LightGBM can also produce quantiles (quantile objective) later if needed.
 
 ## Local dev quickstart
 - ML (Linux/Mac): `cd packages/ml && python3.13 -m venv .venv && .venv/bin/pip install -e ".[dev]" && .venv/bin/pytest`
