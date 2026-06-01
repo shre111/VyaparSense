@@ -34,7 +34,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(ml): probabilistic/quantile forecasts` (#40 metrics, #41 forecaster + backtest)
 
 ## Phase 4 — Global ML model
-- [ ] `feat(ml): feature engineering (calendar, price, promo, lags, rolling)`
+- [x] `feat(ml): feature engineering (calendar, price, promo, lags, rolling)` (#43)
 - [ ] `feat(ml): LightGBM global model (recursive multi-step)`
 - [ ] `feat(ml): model card generation per training run`
 
