@@ -3,9 +3,9 @@
 > Living scratchpad of where the project actually is. Update at the end of each work session. Newest at top.
 
 ## Snapshot (2026-06-02)
-- **Phase:** Phase 0 ✅, Phase 1 ✅, Phase 2 ✅ COMPLETE. Phase 3 (classical & intermittent) IN PROGRESS — ETS/AutoARIMA (#36) and Croston/SBA/TSB (#38) done; only quantile/probabilistic forecasts remain. All code verified on `main`.
+- **Phase:** Phase 0 ✅, Phase 1 ✅, Phase 2 ✅, **Phase 3 (classical & intermittent) ✅ COMPLETE** — ETS/AutoARIMA (#36), Croston/SBA/TSB (#38), probabilistic/quantile forecasts (#40 metrics, #41 forecaster+backtest). All code verified on `main`. **Phase 4 (global LightGBM) is next.**
 - **Repo:** github.com/shre111/VyaparSense. `main` protected (3 CI checks + up-to-date branch; no force-push/delete). main push-CI green. Only `main` branch remains on remote.
-- **End-to-end pipeline (verified green on main):** CSV → `read_sales_csv` → `clean_sales` (dedupe + calendar gap-fill) → `to_series` → `classify_series` (ADI/CV²) → persisted per-tenant via `POST /tenants/{id}/uploads`. Forecasting: `select_per_series` runs an expanding-window backtest of all candidate models (baselines + classical + intermittent) and picks the lowest pooled-WAPE per series. **ML lib 124 tests, API 7 tests** — ruff + ruff-format + mypy(strict) + pytest all pass in CI.
+- **End-to-end pipeline (verified green on main):** CSV → `read_sales_csv` → `clean_sales` (dedupe + calendar gap-fill) → `to_series` → `classify_series` (ADI/CV²) → persisted per-tenant via `POST /tenants/{id}/uploads`. Forecasting: `select_per_series` runs an expanding-window backtest of all candidate models (baselines + classical + intermittent) and picks the lowest pooled-WAPE per series; probabilistic forecasts via `EmpiricalQuantileForecaster` + `quantile_backtest` (pinball/coverage). **ML lib 154 tests, API 7 tests** — ruff + ruff-format + mypy(strict) + pytest all pass in CI.
 - **Tooling pinned (PR #30):** `ruff==0.15.15`, `mypy==1.13.0` in both pyproject dev extras, so local == CI. Root-cause fix for Phase 1's green-local/red-CI thrash (unpinned tools let CI pull newer ruff that flagged B008 `Depends()`-in-defaults; API uses `SessionDep = Annotated[...]`). API landed cleanly in PR #31.
 - **GitHub identity:** push/PRs via `gh` as **shre111** (gh keyring auth, token scopes incl. repo/workflow). Repo-local git author = `shre111 <155060758+shre111@users.noreply.github.com>` to match existing history. Never push to `main` directly — feature branch + PR + squash-merge.
 
@@ -29,10 +29,12 @@
   - `selection.py` — `select_model`/`select_per_series` pick lowest pooled-WAPE model per series.
   - +42 tests (47→89). **Honest sample-data backtest** (16 series, 52 folds/series, h=7, step=7, 365-day warmup): `moving_average_7` wins 14/16; `naive` wins 1 (SKU-BATTERY-AA @ BLR), `seasonal_naive_7` wins 1 (SKU-GIFT-BOX @ BLR). Lumpy/intermittent SKUs (GIFT-BOX, PRESSURE-CK, BATTERY-AA, SHAMPOO-S) sit at WAPE > 1.0 → the gap Phase 3 targets.
 
-## Shipped (Phase 3, in progress)
+## Shipped (Phase 3 ✅)
 - PR #36 — `forecasting/classical.py`: `AutoETS` and `AutoARIMA` thin adapters over Nixtla `statsforecast` (ADR-004), conforming to the `Baseline` protocol so the Phase 2 harness drives them unchanged. First heavy deps added to `packages/ml` (`statsforecast>=2.0`, `numpy>=1.26`). Guards: require ≥2*season_length obs; clamp negative outputs to 0; fall back to seasonal-naive on non-finite optimizer output. +12 tests (89→101). **Backtest vs baselines** (same protocol): a classical model beats the best Phase 2 baseline on **14/16** series (ARIMA wins 10, ETS 4, naive 1, MA7 1). The 2 losses are the intermittent SKUs SKU-BATTERY-AA & SKU-SHAMPOO-S → exactly what Croston/SBA/TSB (next item) targets.
   - Process note: first PR (#35) failed commitlint `subject-case` (had `AutoETS`/`AutoARIMA` capitalized — subjects must be lower-case); closed and re-landed as #36 with `add auto-ets and auto-arima models`.
 - PR #38 — `forecasting/intermittent.py`: `Croston`, `CrostonSBA`, `TSB` thin adapters over `statsforecast`, same `Baseline`-protocol pattern; flat forecasts. Guards: reject empty history/bad horizon/out-of-range alpha; clamp negatives; fall back to flat `Naive` on non-finite. +23 tests (101→124). **Backtest vs full 8-model pool** (same protocol): SBA wins 5/16; ARIMA still 8; naive/MA7/ETS 1 each; **Croston & TSB win nothing**. SBA modestly lowers best WAPE on the hardest SKUs vs #36 (GIFT-BOX@BLR 1.719→1.663, BATTERY-AA@DEL 1.426→1.424, SHAMPOO-S@DEL 1.197→1.196) but does NOT sweep the lumpy SKUs — ARIMA keeps PRESSURE-CK (both) & GIFT-BOX@DEL. Honest outcome: SBA earns a pool slot; Croston/TSB retained as benchmarks only.
+- PR #40 — `forecasting/quantile_metrics.py`: `pinball_loss`/`mean_pinball_loss` (selection metric for probabilistic forecasts; pinball@0.5 = ½·MAE) + `coverage` (calibration diagnostic). Pure stdlib, +11 tests (124→135).
+- PR #41 — `forecasting/quantile.py` + `quantile_backtest.py`: `QuantileForecaster` protocol + `EmpiricalQuantileForecaster` (wraps ANY `Baseline`; quantile = point + empirical-quantile of in-sample one-step residuals, clamped ≥0; model-agnostic/conformal — chosen because statsforecast interval support is inconsistent: ETS/ARIMA take `level=`, Croston family raises without conformal `prediction_intervals`). `quantile_backtest` mirrors the point harness, scored with pinball + coverage. +19 tests (135→154). **Calibration backtest** (Empirical[MA7], q={.5,.9,.95}, same protocol): mean coverage cov@.90=0.90, cov@.95=0.94 (well-calibrated where safety stock needs it); cov@.50=0.64 over-covers — entirely the intermittent/lumpy SKUs (zeros dominate → empirical residual median ≥0); smooth SKUs land on 0.50. Expected, reported honestly.
 
 ## Decided
 - **Brand: VyaparSense** (vyaparsense.com). Repo codename `kirana-demand`. (ADR-001)
@@ -47,12 +49,14 @@
 ## Open questions (user input)
 - ADR-010 pricing tiers per market (later). License (user unsure; default proprietary). Wedge (default D2C-first, generic ingestion).
 
-## Next actions (Phase 3 — remaining)
-1. ✅ `feat(ml): ETS + AutoARIMA via statsforecast` (#36, done).
-2. ✅ `feat(ml): Croston / SBA / TSB for intermittent SKUs` (#38, done).
-3. `feat(ml): probabilistic/quantile forecasts` — NEXT, last Phase 3 item. Feeds service-level-aware reorder points (Phase 5). statsforecast models expose prediction intervals via `level=[...]`/`forecast(..., level=)`; will likely need the metrics/backtest harness extended to score quantiles (e.g. pinball/quantile loss) — currently they only handle point forecasts. Design this carefully; may warrant 2 micro-PRs (quantile-capable model output, then quantile metrics + backtest).
+## Next actions (Phase 4 — global ML model)
+Phase 3 is fully done. Per `docs/backlog.md` Phase 4:
+1. `feat(ml): feature engineering (calendar, price, promo, lags, rolling)` — NEXT. The sample CSV already carries `price`/`promo_flag`; build a feature frame across all series.
+2. `feat(ml): LightGBM global model (recursive multi-step)` — the M5-winning pattern; one model across all SKUs/stores. **First new heavy dep `lightgbm`** (add in this PR; verify it has a 3.13 wheel like statsforecast did). Must beat the Phase 3 per-series champions on the same backtest or document why not.
+3. `feat(ml): model card generation per training run` (data hash, features, params, metrics → `docs/model-cards/`).
 - Each rung must beat the prior models on the same per-series backtest, or document why not.
-- After Phase 3: wire selection into `POST /tenants/{id}/forecasts` persisting into append-only `forecasts` → enables the accuracy-over-time chart.
+- Cross-cutting (after Phase 4 or interleaved): wire selection into `POST /tenants/{id}/forecasts` persisting into append-only `forecasts` → enables the accuracy-over-time chart (the flywheel/hero visual).
+- Note: the harness is point-forecast for selection; probabilistic side is separate (`EmpiricalQuantileForecaster`/`quantile_backtest`). A global LightGBM can also produce quantiles (quantile objective) later if needed.
 
 ## Local dev quickstart
 - ML (Linux/Mac): `cd packages/ml && python3.13 -m venv .venv && .venv/bin/pip install -e ".[dev]" && .venv/bin/pytest`
