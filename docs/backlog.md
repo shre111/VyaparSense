@@ -38,10 +38,10 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(ml): LightGBM global model (recursive multi-step)` (#45)
 - [x] `feat(ml): model card generation per training run` (#47)
 
-## Phase 5 — Replenishment
+## Phase 5 — Replenishment ✅
 - [x] `feat(ml): safety stock + reorder point + EOQ + days-of-cover` (#49)
 - [x] `feat(ml): service-level targets → reorder suggestions` (#51)
-- [ ] `feat(ml): simulated stockout / dead-stock KPIs`
+- [x] `feat(ml): simulated stockout / dead-stock KPIs` (#53)
 
 ## Phase 6 — Frontend
 - [ ] `feat(web): scaffold Next.js app + Tailwind + shadcn/ui`
