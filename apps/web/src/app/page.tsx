@@ -65,6 +65,9 @@ export default function Home() {
           <Link href="/forecasts" className={cn(buttonVariants({ variant: "outline" }))}>
             View forecasts
           </Link>
+          <Link href="/reorder" className={cn(buttonVariants({ variant: "outline" }))}>
+            Reorder suggestions
+          </Link>
         </div>
       </section>
 
