@@ -58,9 +58,12 @@ export default function Home() {
           VyaparSense learns your demand and tells you exactly what to reorder —
           and it gets measurably smarter every week.
         </p>
-        <div className="mt-8 flex justify-center gap-3">
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link href="/upload" className={cn(buttonVariants())}>
             Upload sales history
+          </Link>
+          <Link href="/accuracy" className={cn(buttonVariants({ variant: "outline" }))}>
+            Accuracy over time
           </Link>
           <Link href="/forecasts" className={cn(buttonVariants({ variant: "outline" }))}>
             View forecasts

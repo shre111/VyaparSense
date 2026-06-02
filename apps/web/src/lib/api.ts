@@ -48,6 +48,25 @@ export interface ReorderItem {
   days_of_cover: number;
 }
 
+/** One point on the accuracy-over-time curve from `GET /tenants/{id}/accuracy`. */
+export interface AccuracyPoint {
+  period: string; // ISO year-week, e.g. "2024-W05"
+  n: number;
+  wape: number | null; // null when undefined (zero actual demand that week)
+}
+
+/** Before/after policy KPIs from `GET /tenants/{id}/simulation-kpis`. */
+export interface KpiComparison {
+  series_simulated: number;
+  naive_fill_rate: number;
+  forecast_fill_rate: number;
+  naive_units_lost: number;
+  forecast_units_lost: number;
+  lost_sales_reduction_pct: number;
+  naive_avg_on_hand: number;
+  forecast_avg_on_hand: number;
+}
+
 /** Raised for non-2xx API responses, carrying the server's detail message. */
 export class ApiError extends Error {
   constructor(
@@ -94,13 +113,21 @@ export async function uploadSalesCsv(
   });
 }
 
-/** Generate and persist `horizon`-day forecasts for the tenant's series. */
+/** Generate and persist `horizon`-day forecasts for the tenant's series.
+ *
+ * With `asOf` (an ISO date), forecasts run forward from that past cutoff so
+ * their horizon dates fall on days that already have realised actuals — used to
+ * backfill the accuracy curve.
+ */
 export async function generateForecasts(
   tenantId: string,
   horizon = 7,
+  asOf?: string,
 ): Promise<ForecastRunSummary> {
+  const params = new URLSearchParams({ horizon: String(horizon) });
+  if (asOf) params.set("as_of", asOf);
   return requestJson<ForecastRunSummary>(
-    tenantPath(tenantId, `/forecasts?horizon=${horizon}`),
+    tenantPath(tenantId, `/forecasts?${params.toString()}`),
     { method: "POST" },
   );
 }
@@ -139,4 +166,49 @@ export async function getReorderSuggestions(
   return requestJson<ReorderItem[]>(
     tenantPath(tenantId, `/reorder-suggestions?${qs}`),
   );
+}
+
+/** Rolling-WAPE-by-week accuracy curve from `GET /tenants/{id}/accuracy`. */
+export async function getAccuracy(tenantId: string): Promise<AccuracyPoint[]> {
+  return requestJson<AccuracyPoint[]>(tenantPath(tenantId, "/accuracy"));
+}
+
+/** Before/after policy KPIs from `GET /tenants/{id}/simulation-kpis`. */
+export async function getSimulationKpis(
+  tenantId: string,
+  params: ReorderParams,
+): Promise<KpiComparison> {
+  const qs = new URLSearchParams({
+    lead_time_days: String(params.leadTimeDays),
+    service_level: String(params.serviceLevel),
+  }).toString();
+  return requestJson<KpiComparison>(
+    tenantPath(tenantId, `/simulation-kpis?${qs}`),
+  );
+}
+
+/**
+ * Backfill the accuracy history by generating forecasts at several past weekly
+ * cutoffs, so horizon dates overlap realised actuals and the curve fills in.
+ *
+ * `lastSaleDate` is the most recent date with sales; we step back weekly from
+ * `horizon` days before it (leaving room for the forecast to land on actuals)
+ * for `weeks` cutoffs. Returns how many cutoffs were generated.
+ */
+export async function backfillAccuracy(
+  tenantId: string,
+  opts: { lastSaleDate: string; weeks?: number; horizon?: number },
+): Promise<number> {
+  const horizon = opts.horizon ?? 7;
+  const weeks = opts.weeks ?? 8;
+  const last = new Date(`${opts.lastSaleDate}T00:00:00Z`);
+  let count = 0;
+  for (let i = 1; i <= weeks; i++) {
+    const cutoff = new Date(last);
+    cutoff.setUTCDate(cutoff.getUTCDate() - horizon - i * 7);
+    const asOf = cutoff.toISOString().slice(0, 10);
+    await generateForecasts(tenantId, horizon, asOf);
+    count += 1;
+  }
+  return count;
 }
