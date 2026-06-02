@@ -43,6 +43,13 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(ml): service-level targets → reorder suggestions` (#51)
 - [x] `feat(ml): simulated stockout / dead-stock KPIs` (#53)
 
+## Cross-cutting — API integration (wire packages/ml into apps/api)
+> Bridges the ML library into the FastAPI service so the frontend has real data.
+- [x] `feat(api): forecast generation + read endpoints (baselines, sync)` (#55)
+- [ ] `feat(api): accuracy-over-time endpoint (rolling WAPE: past forecasts vs actuals)`
+- [ ] `feat(api): reorder-suggestion + simulation-KPI endpoints`
+- [ ] `feat(api): async worker for heavy models (classical / global LightGBM) (ADR-007)`
+
 ## Phase 6 — Frontend
 - [ ] `feat(web): scaffold Next.js app + Tailwind + shadcn/ui`
 - [ ] `feat(web): CSV upload + job-status UX`
