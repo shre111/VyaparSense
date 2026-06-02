@@ -33,10 +33,10 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(ml): Croston / SBA / TSB for intermittent SKUs` (#38)
 - [x] `feat(ml): probabilistic/quantile forecasts` (#40 metrics, #41 forecaster + backtest)
 
-## Phase 4 — Global ML model
+## Phase 4 — Global ML model ✅
 - [x] `feat(ml): feature engineering (calendar, price, promo, lags, rolling)` (#43)
 - [x] `feat(ml): LightGBM global model (recursive multi-step)` (#45)
-- [ ] `feat(ml): model card generation per training run`
+- [x] `feat(ml): model card generation per training run` (#47)
 
 ## Phase 5 — Replenishment
 - [ ] `feat(ml): safety stock + reorder point + EOQ + days-of-cover`
