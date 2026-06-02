@@ -67,7 +67,8 @@ def _seed(
 ) -> None:
     s = session_factory()
     try:
-        s.add(Tenant(id=tenant, name=tenant))
+        if s.get(Tenant, tenant) is None:
+            s.add(Tenant(id=tenant, name=tenant))
         for horizon_date, pred in forecasts:
             s.add(
                 Forecast(
@@ -99,16 +100,16 @@ def _seed(
 
 
 def test_accuracy_endpoint_joins_forecasts_to_actuals(
-    client: TestClient, session_factory: sessionmaker[Session]
+    auth_client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     d = dt.date(2024, 1, 8)
     _seed(
         session_factory,
-        tenant="acme",
+        tenant="acme",  # matches the auth_client's tenant
         forecasts=[(d, 12.0)],  # predicted 12 for Jan 8
         actuals=[(d, 10)],  # realised 10
     )
-    resp = client.get("/tenants/acme/accuracy")
+    resp = auth_client.get("/accuracy")
     assert resp.status_code == 200
     body = resp.json()
     assert len(body) == 1
@@ -117,7 +118,7 @@ def test_accuracy_endpoint_joins_forecasts_to_actuals(
 
 
 def test_accuracy_endpoint_skips_unrealised_forecasts(
-    client: TestClient, session_factory: sessionmaker[Session]
+    auth_client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     # forecast for a date with no matching actual -> not counted
     _seed(
@@ -126,13 +127,13 @@ def test_accuracy_endpoint_skips_unrealised_forecasts(
         forecasts=[(dt.date(2024, 1, 8), 12.0)],
         actuals=[(dt.date(2024, 1, 9), 10)],  # different date
     )
-    resp = client.get("/tenants/acme/accuracy")
+    resp = auth_client.get("/accuracy")
     assert resp.status_code == 200
     assert resp.json() == []
 
 
 def test_accuracy_endpoint_zero_actual_returns_null_wape(
-    client: TestClient, session_factory: sessionmaker[Session]
+    auth_client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     d = dt.date(2024, 1, 8)
     _seed(
@@ -141,10 +142,10 @@ def test_accuracy_endpoint_zero_actual_returns_null_wape(
         forecasts=[(d, 3.0)],
         actuals=[(d, 0)],  # zero actual -> WAPE undefined -> null
     )
-    body = client.get("/tenants/acme/accuracy").json()
+    body = auth_client.get("/accuracy").json()
     assert len(body) == 1
     assert body[0]["wape"] is None
 
 
-def test_accuracy_endpoint_empty_for_new_tenant(client: TestClient) -> None:
-    assert client.get("/tenants/nobody/accuracy").json() == []
+def test_accuracy_endpoint_empty_for_new_tenant(auth_client: TestClient) -> None:
+    assert auth_client.get("/accuracy").json() == []

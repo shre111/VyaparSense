@@ -17,22 +17,17 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import APIRouter, Cookie, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app import repository, security
 from app.config import get_settings
-from app.db import get_session
-from app.models import User
+from app.deps import CurrentUser, SessionDep
 from app.schemas import AuthResponse, LoginRequest, SignupRequest, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-SessionDep = Annotated[Session, Depends(get_session)]
-
 _REFRESH_COOKIE = "vs_refresh"
-_bearer = HTTPBearer(auto_error=False)
 
 
 def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
@@ -63,26 +58,6 @@ def _issue_tokens(
         tenant_id=tenant_id,
         email=email,
     )
-
-
-def get_current_user(
-    session: SessionDep,
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
-) -> User:
-    """Resolve the current user from a Bearer access token. 401 if missing/invalid."""
-    if credentials is None:
-        raise HTTPException(status_code=401, detail="not authenticated")
-    try:
-        claims = security.decode_token(credentials.credentials, "access")
-    except security.TokenError as exc:
-        raise HTTPException(status_code=401, detail="invalid or expired token") from exc
-    user = repository.get_user(session, int(claims["sub"]))
-    if user is None:
-        raise HTTPException(status_code=401, detail="user no longer exists")
-    return user
-
-
-CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)

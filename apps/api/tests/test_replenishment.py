@@ -27,9 +27,9 @@ def _history_csv(days: int = 90, store: str = "S1", sku: str = "K1") -> str:
 # --- reorder suggestions ----------------------------------------------------
 
 
-def test_reorder_suggestions_returns_rows(client: TestClient) -> None:
-    client.post("/tenants/acme/uploads", files=_csv(_history_csv()))
-    resp = client.get("/tenants/acme/reorder-suggestions?lead_time_days=7&service_level=0.95")
+def test_reorder_suggestions_returns_rows(auth_client: TestClient) -> None:
+    auth_client.post("/uploads", files=_csv(_history_csv()))
+    resp = auth_client.get("/reorder-suggestions?lead_time_days=7&service_level=0.95")
     assert resp.status_code == 200, resp.text
     rows = resp.json()
     assert len(rows) == 1
@@ -45,43 +45,49 @@ def test_reorder_suggestions_returns_rows(client: TestClient) -> None:
     assert row["order_quantity"] > 0.0
 
 
-def test_reorder_higher_service_level_raises_reorder_point(client: TestClient) -> None:
-    client.post("/tenants/acme/uploads", files=_csv(_history_csv()))
-    low = client.get("/tenants/acme/reorder-suggestions?lead_time_days=7&service_level=0.80")
-    high = client.get("/tenants/acme/reorder-suggestions?lead_time_days=7&service_level=0.99")
+def test_reorder_higher_service_level_raises_reorder_point(auth_client: TestClient) -> None:
+    auth_client.post("/uploads", files=_csv(_history_csv()))
+    low = auth_client.get("/reorder-suggestions?lead_time_days=7&service_level=0.80")
+    high = auth_client.get("/reorder-suggestions?lead_time_days=7&service_level=0.99")
     assert low.json()[0]["reorder_point"] <= high.json()[0]["reorder_point"]
 
 
-def test_reorder_on_hand_param_flips_should_reorder(client: TestClient) -> None:
-    client.post("/tenants/acme/uploads", files=_csv(_history_csv()))
-    huge = client.get("/tenants/acme/reorder-suggestions?lead_time_days=7&on_hand=100000")
+def test_reorder_on_hand_param_flips_should_reorder(auth_client: TestClient) -> None:
+    auth_client.post("/uploads", files=_csv(_history_csv()))
+    huge = auth_client.get("/reorder-suggestions?lead_time_days=7&on_hand=100000")
     assert huge.json()[0]["should_reorder"] is False
     assert huge.json()[0]["order_quantity"] == 0.0
 
 
-def test_reorder_skips_short_series(client: TestClient) -> None:
-    client.post("/tenants/acme/uploads", files=_csv(_history_csv(days=5)))
-    resp = client.get("/tenants/acme/reorder-suggestions")
+def test_reorder_skips_short_series(auth_client: TestClient) -> None:
+    auth_client.post("/uploads", files=_csv(_history_csv(days=5)))
+    resp = auth_client.get("/reorder-suggestions")
     assert resp.status_code == 200
     assert resp.json() == []
 
 
-def test_reorder_invalid_params_rejected(client: TestClient) -> None:
-    client.post("/tenants/acme/uploads", files=_csv(_history_csv()))
-    assert client.get("/tenants/acme/reorder-suggestions?lead_time_days=0").status_code == 422
-    assert client.get("/tenants/acme/reorder-suggestions?service_level=1.5").status_code == 422
+def test_reorder_invalid_params_rejected(auth_client: TestClient) -> None:
+    auth_client.post("/uploads", files=_csv(_history_csv()))
+    assert auth_client.get("/reorder-suggestions?lead_time_days=0").status_code == 422
+    assert auth_client.get("/reorder-suggestions?service_level=1.5").status_code == 422
 
 
-def test_reorder_empty_tenant(client: TestClient) -> None:
-    assert client.get("/tenants/nobody/reorder-suggestions").json() == []
+def test_reorder_empty_tenant(auth_client: TestClient) -> None:
+    # authed tenant with no uploaded sales -> no suggestions
+    assert auth_client.get("/reorder-suggestions").json() == []
+
+
+def test_reorder_requires_auth(client: TestClient) -> None:
+    assert client.get("/reorder-suggestions").status_code == 401
+    assert client.get("/simulation-kpis").status_code == 401
 
 
 # --- simulation KPIs --------------------------------------------------------
 
 
-def test_simulation_kpis_forecast_beats_naive(client: TestClient) -> None:
-    client.post("/tenants/acme/uploads", files=_csv(_history_csv(days=120)))
-    resp = client.get("/tenants/acme/simulation-kpis?lead_time_days=7&service_level=0.95")
+def test_simulation_kpis_forecast_beats_naive(auth_client: TestClient) -> None:
+    auth_client.post("/uploads", files=_csv(_history_csv(days=120)))
+    resp = auth_client.get("/simulation-kpis?lead_time_days=7&service_level=0.95")
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body["series_simulated"] == 1
@@ -91,8 +97,8 @@ def test_simulation_kpis_forecast_beats_naive(client: TestClient) -> None:
     assert 0.0 <= body["lost_sales_reduction_pct"] <= 1.0
 
 
-def test_simulation_kpis_empty_tenant(client: TestClient) -> None:
-    resp = client.get("/tenants/nobody/simulation-kpis")
+def test_simulation_kpis_empty_tenant(auth_client: TestClient) -> None:
+    resp = auth_client.get("/simulation-kpis")  # authed tenant, no sales
     assert resp.status_code == 200
     body = resp.json()
     assert body["series_simulated"] == 0
@@ -100,7 +106,7 @@ def test_simulation_kpis_empty_tenant(client: TestClient) -> None:
     assert body["lost_sales_reduction_pct"] == 0.0
 
 
-def test_simulation_kpis_invalid_params_rejected(client: TestClient) -> None:
-    client.post("/tenants/acme/uploads", files=_csv(_history_csv()))
-    assert client.get("/tenants/acme/simulation-kpis?lead_time_days=0").status_code == 422
-    assert client.get("/tenants/acme/simulation-kpis?service_level=0").status_code == 422
+def test_simulation_kpis_invalid_params_rejected(auth_client: TestClient) -> None:
+    auth_client.post("/uploads", files=_csv(_history_csv()))
+    assert auth_client.get("/simulation-kpis?lead_time_days=0").status_code == 422
+    assert auth_client.get("/simulation-kpis?service_level=0").status_code == 422

@@ -42,3 +42,24 @@ def client(session_factory: sessionmaker[Session]) -> Iterator[TestClient]:
     app.dependency_overrides[get_session] = _override
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+def _auth(client: TestClient, tenant_id: str, email: str) -> TestClient:
+    """Sign up a user and attach its access token to the client's headers."""
+    resp = client.post(
+        "/auth/signup",
+        json={"tenant_id": tenant_id, "email": email, "password": "hunter2pw"},
+    )
+    assert resp.status_code == 201, resp.text
+    client.headers["Authorization"] = f"Bearer {resp.json()['access_token']}"
+    return client
+
+
+@pytest.fixture
+def auth_client(client: TestClient) -> TestClient:
+    """A TestClient authenticated as a user of tenant ``acme``.
+
+    Business endpoints derive the tenant from the access token, so tests use this
+    instead of putting a tenant id in the URL.
+    """
+    return _auth(client, "acme", "owner@acme.com")

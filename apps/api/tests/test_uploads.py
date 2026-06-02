@@ -1,4 +1,4 @@
-"""Upload endpoint tests, incl. tenant isolation."""
+"""Upload endpoint tests. Endpoints are tenant-scoped via the access token."""
 
 from __future__ import annotations
 
@@ -18,8 +18,8 @@ def _csv(content: str) -> dict[str, Any]:
     return {"file": ("sales.csv", content.encode("utf-8"), "text/csv")}
 
 
-def test_upload_stores_records(client: TestClient) -> None:
-    resp = client.post("/tenants/acme/uploads", files=_csv(_HEADER + _ROWS))
+def test_upload_stores_records(auth_client: TestClient) -> None:
+    resp = auth_client.post("/uploads", files=_csv(_HEADER + _ROWS))
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body["tenant_id"] == "acme"
@@ -29,35 +29,34 @@ def test_upload_stores_records(client: TestClient) -> None:
     assert sum(body["patterns"].values()) == 2
 
 
-def test_upload_lists_back(client: TestClient) -> None:
-    client.post("/tenants/acme/uploads", files=_csv(_HEADER + _ROWS))
-    resp = client.get("/tenants/acme/uploads")
+def test_upload_lists_back(auth_client: TestClient) -> None:
+    auth_client.post("/uploads", files=_csv(_HEADER + _ROWS))
+    resp = auth_client.get("/uploads")
     assert resp.status_code == 200
     items = resp.json()
     assert len(items) == 1
     assert items[0]["row_count"] == 4
 
 
-def test_empty_file_rejected(client: TestClient) -> None:
-    resp = client.post("/tenants/acme/uploads", files=_csv(""))
+def test_empty_file_rejected(auth_client: TestClient) -> None:
+    resp = auth_client.post("/uploads", files=_csv(""))
     assert resp.status_code == 422
 
 
-def test_missing_column_rejected(client: TestClient) -> None:
+def test_missing_column_rejected(auth_client: TestClient) -> None:
     bad = "date,store_id,sku_id,units_sold,price\n2024-01-01,S1,K1,5,10.0\n"
-    resp = client.post("/tenants/acme/uploads", files=_csv(bad))
+    resp = auth_client.post("/uploads", files=_csv(bad))
     assert resp.status_code == 422
 
 
-def test_bad_row_rejected(client: TestClient) -> None:
+def test_bad_row_rejected(auth_client: TestClient) -> None:
     bad = _HEADER + "2024-01-01,S1,K1,-5,10.0,0\n"
-    resp = client.post("/tenants/acme/uploads", files=_csv(bad))
+    resp = auth_client.post("/uploads", files=_csv(bad))
     assert resp.status_code == 422
 
 
-def test_tenant_isolation(client: TestClient) -> None:
-    client.post("/tenants/acme/uploads", files=_csv(_HEADER + _ROWS))
-    # Another tenant sees nothing.
-    resp = client.get("/tenants/other/uploads")
-    assert resp.status_code == 200
-    assert resp.json() == []
+def test_upload_requires_auth(client: TestClient) -> None:
+    # no Authorization header -> 401
+    resp = client.post("/uploads", files=_csv(_HEADER + _ROWS))
+    assert resp.status_code == 401
+    assert client.get("/uploads").status_code == 401

@@ -9,17 +9,14 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Query
 
 from app import repository
-from app.db import get_session
+from app.deps import CurrentTenant, SessionDep
 from app.replenishment import policy_kpis, reorder_suggestions
 from app.schemas import KpiComparisonResponse, ReorderItem
 
 router = APIRouter(tags=["replenishment"])
-
-SessionDep = Annotated[Session, Depends(get_session)]
 
 LeadTime = Annotated[int, Query(ge=1, le=90)]
 ServiceLevel = Annotated[float, Query(gt=0.0, lt=1.0)]
@@ -27,10 +24,10 @@ OnHand = Annotated[float, Query(ge=0.0)]
 UnitCost = Annotated[float, Query(ge=0.0)]
 
 
-@router.get("/tenants/{tenant_id}/reorder-suggestions", response_model=list[ReorderItem])
+@router.get("/reorder-suggestions", response_model=list[ReorderItem])
 def get_reorder_suggestions(
-    tenant_id: str,
     session: SessionDep,
+    tenant_id: CurrentTenant,
     lead_time_days: LeadTime = 7,
     service_level: ServiceLevel = 0.95,
     on_hand: OnHand = 0.0,
@@ -60,10 +57,10 @@ def get_reorder_suggestions(
     ]
 
 
-@router.get("/tenants/{tenant_id}/simulation-kpis", response_model=KpiComparisonResponse)
+@router.get("/simulation-kpis", response_model=KpiComparisonResponse)
 def get_simulation_kpis(
-    tenant_id: str,
     session: SessionDep,
+    tenant_id: CurrentTenant,
     lead_time_days: LeadTime = 7,
     service_level: ServiceLevel = 0.95,
     unit_cost: UnitCost = 1.0,
