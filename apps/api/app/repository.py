@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from vyaparsense_ml.schema import SalesRecord
 
 from app.forecasting import ForecastRow
-from app.models import Forecast, SalesRecordRow, Tenant, Upload, User
+from app.models import Forecast, RefreshToken, SalesRecordRow, Tenant, Upload, User
 
 SeriesKey = tuple[str, str]
 
@@ -29,6 +29,11 @@ def get_user_by_email(session: Session, email: str) -> User | None:
     return session.scalars(stmt).first()
 
 
+def get_user(session: Session, user_id: int) -> User | None:
+    """Look up a user by id; None if not found."""
+    return session.get(User, user_id)
+
+
 def create_user(session: Session, *, tenant_id: str, email: str, password_hash: str) -> User:
     """Create a user under a tenant (creating the tenant if needed).
 
@@ -45,6 +50,38 @@ def create_user(session: Session, *, tenant_id: str, email: str, password_hash: 
     session.commit()
     session.refresh(user)
     return user
+
+
+def record_refresh_jti(session: Session, *, user_id: int, jti: str) -> None:
+    """Record an issued refresh token's jti for a user (rotation tracking)."""
+    session.add(RefreshToken(user_id=user_id, jti=jti, revoked=False))
+    session.commit()
+
+
+def get_refresh_token(session: Session, jti: str) -> RefreshToken | None:
+    """Look up a stored refresh token by its jti; None if never issued."""
+    return session.scalars(select(RefreshToken).where(RefreshToken.jti == jti)).first()
+
+
+def revoke_refresh_jti(session: Session, jti: str) -> None:
+    """Mark a single refresh token revoked (the normal rotation step)."""
+    row = get_refresh_token(session, jti)
+    if row is not None and not row.revoked:
+        row.revoked = True
+        session.commit()
+
+
+def revoke_all_user_refresh(session: Session, user_id: int) -> int:
+    """Revoke every outstanding refresh token for a user (reuse-detection
+    response / global logout). Returns how many were revoked."""
+    rows = session.scalars(
+        select(RefreshToken).where(RefreshToken.user_id == user_id, RefreshToken.revoked.is_(False))
+    ).all()
+    for row in rows:
+        row.revoked = True
+    if rows:
+        session.commit()
+    return len(rows)
 
 
 def store_upload(

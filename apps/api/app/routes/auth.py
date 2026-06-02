@@ -1,31 +1,38 @@
-"""Auth endpoints: signup and login (custom auth, ADR-006).
+"""Auth endpoints: signup, login, refresh, and current-user (custom auth, ADR-006).
 
 Uses the `app.security` primitives (Argon2id + JWT). The refresh token is set as
 an httpOnly, secure, SameSite cookie; the short-lived access token is returned in
 the response body for the SPA to hold in memory.
 
-> ⚠️ Security-sensitive. Refresh-token rotation + reuse detection, CSRF
-> protection for the cookie, rate limiting, and `tenant_id` isolation middleware
-> are follow-up PRs. Needs a full security review before launch.
+Refresh tokens rotate: each `/auth/refresh` revokes the presented token and
+issues a new one. Presenting an already-revoked refresh jti is treated as theft
+— every outstanding refresh token for that user is revoked (forced re-login).
+
+> ⚠️ Security-sensitive. CSRF protection for the cookie, rate limiting, and
+> `tenant_id` isolation middleware are follow-up PRs. Needs a full security
+> review before launch.
 """
 
 from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app import repository, security
 from app.config import get_settings
 from app.db import get_session
-from app.schemas import AuthResponse, LoginRequest, SignupRequest
+from app.models import User
+from app.schemas import AuthResponse, LoginRequest, SignupRequest, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
 _REFRESH_COOKIE = "vs_refresh"
+_bearer = HTTPBearer(auto_error=False)
 
 
 def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
@@ -41,15 +48,41 @@ def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
     )
 
 
-def _auth_response(response: Response, user_id: int, tenant_id: str, email: str) -> AuthResponse:
+def _issue_tokens(
+    response: Response, session: Session, user_id: int, tenant_id: str, email: str
+) -> AuthResponse:
+    """Mint an access + refresh token, persist the refresh jti, set the cookie."""
     subject = str(user_id)
-    _set_refresh_cookie(response, security.create_refresh_token(subject))
+    refresh = security.create_refresh_token(subject)
+    jti = security.decode_token(refresh, "refresh")["jti"]
+    repository.record_refresh_jti(session, user_id=user_id, jti=jti)
+    _set_refresh_cookie(response, refresh)
     return AuthResponse(
         access_token=security.create_access_token(subject),
         user_id=user_id,
         tenant_id=tenant_id,
         email=email,
     )
+
+
+def get_current_user(
+    session: SessionDep,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+) -> User:
+    """Resolve the current user from a Bearer access token. 401 if missing/invalid."""
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="not authenticated")
+    try:
+        claims = security.decode_token(credentials.credentials, "access")
+    except security.TokenError as exc:
+        raise HTTPException(status_code=401, detail="invalid or expired token") from exc
+    user = repository.get_user(session, int(claims["sub"]))
+    if user is None:
+        raise HTTPException(status_code=401, detail="user no longer exists")
+    return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
@@ -65,7 +98,7 @@ def signup(body: SignupRequest, session: SessionDep, response: Response) -> Auth
         email=body.email,
         password_hash=security.hash_password(body.password),
     )
-    return _auth_response(response, user.id, user.tenant_id, user.email)
+    return _issue_tokens(response, session, user.id, user.tenant_id, user.email)
 
 
 @router.post("/login", response_model=AuthResponse)
@@ -82,4 +115,50 @@ def login(body: LoginRequest, session: SessionDep, response: Response) -> AuthRe
     if security.needs_rehash(user.password_hash):
         user.password_hash = security.hash_password(body.password)
         session.commit()
-    return _auth_response(response, user.id, user.tenant_id, user.email)
+    return _issue_tokens(response, session, user.id, user.tenant_id, user.email)
+
+
+@router.post("/refresh", response_model=AuthResponse)
+def refresh(
+    session: SessionDep,
+    response: Response,
+    vs_refresh: Annotated[str | None, Cookie()] = None,
+) -> AuthResponse:
+    """Rotate the refresh token and return a fresh access + refresh pair.
+
+    Reads the refresh token from the httpOnly ``vs_refresh`` cookie, validates it,
+    and rotates: the presented jti is revoked and a new pair issued. If the
+    presented jti was already revoked (replay/theft), every outstanding refresh
+    token for the user is revoked and the request is rejected.
+    """
+    if vs_refresh is None:
+        raise HTTPException(status_code=401, detail="missing refresh token")
+    try:
+        claims = security.decode_token(vs_refresh, "refresh")
+    except security.TokenError as exc:
+        raise HTTPException(status_code=401, detail="invalid or expired refresh token") from exc
+
+    jti = claims["jti"]
+    stored = repository.get_refresh_token(session, jti)
+    user_id = int(claims["sub"])
+    if stored is None:
+        # Validly-signed but unknown jti -> treat as compromised; revoke all.
+        repository.revoke_all_user_refresh(session, user_id)
+        raise HTTPException(status_code=401, detail="unrecognized refresh token")
+    if stored.revoked:
+        # Reuse of an already-rotated token -> revoke the whole family.
+        repository.revoke_all_user_refresh(session, user_id)
+        raise HTTPException(status_code=401, detail="refresh token reuse detected")
+
+    user = repository.get_user(session, user_id)
+    if user is None:
+        raise HTTPException(status_code=401, detail="user no longer exists")
+
+    repository.revoke_refresh_jti(session, jti)
+    return _issue_tokens(response, session, user.id, user.tenant_id, user.email)
+
+
+@router.get("/me", response_model=UserResponse)
+def me(current: CurrentUser) -> UserResponse:
+    """Return the current authenticated user (from the Bearer access token)."""
+    return UserResponse(user_id=current.id, tenant_id=current.tenant_id, email=current.email)

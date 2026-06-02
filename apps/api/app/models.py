@@ -54,6 +54,26 @@ class User(Base):
     )
 
 
+class RefreshToken(Base):
+    """One issued refresh token, tracked by its ``jti`` for rotation + reuse
+    detection (ADR-006).
+
+    On refresh, the presented token's row is marked ``revoked`` and a new row is
+    issued. Presenting an already-revoked jti is a reuse signal → revoke every
+    outstanding token for that user (force re-login).
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    jti: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class Upload(Base):
     __tablename__ = "uploads"
 
