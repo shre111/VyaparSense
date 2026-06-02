@@ -13,16 +13,15 @@ type Status =
   | { kind: "error"; message: string };
 
 export function UploadForm() {
-  const [tenantId, setTenantId] = React.useState("demo");
   const [file, setFile] = React.useState<File | null>(null);
   const [status, setStatus] = React.useState<Status>({ kind: "idle" });
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!file || !tenantId.trim()) return;
+    if (!file) return;
     setStatus({ kind: "uploading" });
     try {
-      const summary = await uploadSalesCsv(tenantId.trim(), file);
+      const summary = await uploadSalesCsv(file);
       setStatus({ kind: "done", summary });
     } catch (err) {
       const message =
@@ -38,16 +37,6 @@ export function UploadForm() {
   return (
     <div className="flex flex-col gap-6">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Tenant
-          <input
-            value={tenantId}
-            onChange={(e) => setTenantId(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-            placeholder="tenant id"
-          />
-        </label>
-
         <label className="flex flex-col gap-1 text-sm font-medium">
           Sales history CSV
           <input

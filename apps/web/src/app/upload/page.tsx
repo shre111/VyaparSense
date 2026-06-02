@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RequireAuth } from "@/components/require-auth";
 import { UploadForm } from "@/components/upload-form";
 
 export const metadata: Metadata = {
@@ -8,7 +9,8 @@ export const metadata: Metadata = {
 
 export default function UploadPage() {
   return (
-    <main className="container max-w-2xl py-16">
+    <RequireAuth>
+      <main className="container max-w-2xl py-16">
       <Link href="/" className="text-sm text-muted-foreground hover:underline">
         ← Back
       </Link>
@@ -26,6 +28,7 @@ export default function UploadPage() {
           Generate forecasts →
         </Link>
       </p>
-    </main>
+      </main>
+    </RequireAuth>
   );
 }

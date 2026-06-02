@@ -31,19 +31,16 @@ function seriesKey(item: ForecastItem): string {
 }
 
 export function ForecastExplorer() {
-  const [tenantId, setTenantId] = React.useState("demo");
   const [status, setStatus] = React.useState<Status>({ kind: "idle" });
   const [selected, setSelected] = React.useState<string | null>(null);
 
   async function handleRun(event: React.FormEvent) {
     event.preventDefault();
-    if (!tenantId.trim()) return;
     setStatus({ kind: "loading" });
     setSelected(null);
     try {
-      const tenant = tenantId.trim();
-      await generateForecasts(tenant, 7);
-      const items = await getForecasts(tenant);
+      await generateForecasts(7);
+      const items = await getForecasts();
       setStatus({ kind: "ready", items });
       if (items.length > 0) setSelected(seriesKey(items[0]));
     } catch (err) {
@@ -76,15 +73,6 @@ export function ForecastExplorer() {
   return (
     <div className="flex flex-col gap-6">
       <form onSubmit={handleRun} className="flex items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Tenant
-          <input
-            value={tenantId}
-            onChange={(e) => setTenantId(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-            placeholder="tenant id"
-          />
-        </label>
         <Button type="submit" disabled={status.kind === "loading"}>
           {status.kind === "loading" ? (
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />

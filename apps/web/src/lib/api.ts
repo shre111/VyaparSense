@@ -3,11 +3,32 @@
  *
  * The browser talks only to the API over HTTPS (ADR-003) — never the DB. The
  * base URL comes from `NEXT_PUBLIC_API_BASE_URL` (see `.env.example`).
+ *
+ * Auth (ADR-006): `/auth/login` and `/auth/signup` return a short-lived access
+ * token (held in memory here) and set an httpOnly refresh cookie. Business calls
+ * go through `authedFetch`, which attaches the bearer token and, on a 401,
+ * transparently tries `/auth/refresh` once (rotating the cookie) before failing.
+ * The tenant is derived server-side from the token, so no tenant id is sent.
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
-/** Shape of `UploadSummary` returned by `POST /tenants/{id}/uploads`. */
+// --- types ------------------------------------------------------------------
+
+export interface AuthResult {
+  access_token: string;
+  token_type: string;
+  user_id: number;
+  tenant_id: string;
+  email: string;
+}
+
+export interface CurrentUser {
+  user_id: number;
+  tenant_id: string;
+  email: string;
+}
+
 export interface UploadSummary {
   upload_id: number;
   tenant_id: string;
@@ -17,7 +38,6 @@ export interface UploadSummary {
   patterns: Record<string, number>;
 }
 
-/** Summary returned by `POST /tenants/{id}/forecasts`. */
 export interface ForecastRunSummary {
   tenant_id: string;
   horizon: number;
@@ -25,7 +45,6 @@ export interface ForecastRunSummary {
   forecasts_created: number;
 }
 
-/** One forecast point from `GET /tenants/{id}/forecasts`. */
 export interface ForecastItem {
   store_id: string;
   sku_id: string;
@@ -34,7 +53,6 @@ export interface ForecastItem {
   predicted_units: number;
 }
 
-/** One reorder recommendation from `GET /tenants/{id}/reorder-suggestions`. */
 export interface ReorderItem {
   store_id: string;
   sku_id: string;
@@ -48,14 +66,12 @@ export interface ReorderItem {
   days_of_cover: number;
 }
 
-/** One point on the accuracy-over-time curve from `GET /tenants/{id}/accuracy`. */
 export interface AccuracyPoint {
   period: string; // ISO year-week, e.g. "2024-W05"
   n: number;
   wape: number | null; // null when undefined (zero actual demand that week)
 }
 
-/** Before/after policy KPIs from `GET /tenants/{id}/simulation-kpis`. */
 export interface KpiComparison {
   series_simulated: number;
   naive_fill_rate: number;
@@ -78,6 +94,21 @@ export class ApiError extends Error {
   }
 }
 
+// --- access-token store (in memory; refresh lives in the httpOnly cookie) ----
+
+let _accessToken: string | null = null;
+
+/** Set/clear the in-memory access token (called by the auth context). */
+export function setAccessToken(token: string | null): void {
+  _accessToken = token;
+}
+
+export function getAccessToken(): string | null {
+  return _accessToken;
+}
+
+// --- low-level helpers ------------------------------------------------------
+
 async function detail(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as { detail?: unknown };
@@ -88,117 +119,150 @@ async function detail(res: Response): Promise<string> {
   return res.statusText || `request failed (${res.status})`;
 }
 
-async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, init);
-  if (!res.ok) {
-    throw new ApiError(res.status, await detail(res));
+function authHeaders(extra?: HeadersInit): Headers {
+  const headers = new Headers(extra);
+  if (_accessToken) headers.set("Authorization", `Bearer ${_accessToken}`);
+  return headers;
+}
+
+/** Try to refresh the access token using the httpOnly refresh cookie. */
+async function tryRefresh(): Promise<boolean> {
+  const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) return false;
+  const body = (await res.json()) as AuthResult;
+  _accessToken = body.access_token;
+  return true;
+}
+
+/**
+ * Fetch with the bearer token attached. On a 401 (expired access token), tries
+ * a single refresh and replays the request once. Sends cookies so the refresh
+ * flow works.
+ */
+async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const opts: RequestInit = { ...init, credentials: "include", headers: authHeaders(init.headers) };
+  let res = await fetch(`${API_BASE_URL}${path}`, opts);
+  if (res.status === 401 && (await tryRefresh())) {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      credentials: "include",
+      headers: authHeaders(init.headers),
+    });
   }
+  return res;
+}
+
+async function authedJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await authedFetch(path, init);
+  if (!res.ok) throw new ApiError(res.status, await detail(res));
   return (await res.json()) as T;
 }
 
-function tenantPath(tenantId: string, suffix: string): string {
-  return `/tenants/${encodeURIComponent(tenantId)}${suffix}`;
+// --- auth -------------------------------------------------------------------
+
+export async function login(email: string, password: string): Promise<AuthResult> {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await detail(res));
+  const body = (await res.json()) as AuthResult;
+  _accessToken = body.access_token;
+  return body;
 }
 
-/** Upload a sales-history CSV for a tenant; returns the parsed summary. */
-export async function uploadSalesCsv(
+export async function signup(
   tenantId: string,
-  file: File,
-): Promise<UploadSummary> {
+  email: string,
+  password: string,
+): Promise<AuthResult> {
+  const res = await fetch(`${API_BASE_URL}/auth/signup`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tenant_id: tenantId, email, password }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await detail(res));
+  const body = (await res.json()) as AuthResult;
+  _accessToken = body.access_token;
+  return body;
+}
+
+/** Resolve the current user from a refresh cookie (used to restore a session). */
+export async function fetchCurrentUser(): Promise<CurrentUser> {
+  return authedJson<CurrentUser>("/auth/me");
+}
+
+export function logout(): void {
+  _accessToken = null;
+}
+
+// --- business endpoints (tenant derived from the token, server-side) --------
+
+export async function uploadSalesCsv(file: File): Promise<UploadSummary> {
   const form = new FormData();
   form.append("file", file);
-  return requestJson<UploadSummary>(tenantPath(tenantId, "/uploads"), {
-    method: "POST",
-    body: form,
-  });
+  return authedJson<UploadSummary>("/uploads", { method: "POST", body: form });
 }
 
-/** Generate and persist `horizon`-day forecasts for the tenant's series.
- *
- * With `asOf` (an ISO date), forecasts run forward from that past cutoff so
- * their horizon dates fall on days that already have realised actuals — used to
- * backfill the accuracy curve.
- */
-export async function generateForecasts(
-  tenantId: string,
-  horizon = 7,
-  asOf?: string,
-): Promise<ForecastRunSummary> {
+export async function generateForecasts(horizon = 7, asOf?: string): Promise<ForecastRunSummary> {
   const params = new URLSearchParams({ horizon: String(horizon) });
   if (asOf) params.set("as_of", asOf);
-  return requestJson<ForecastRunSummary>(
-    tenantPath(tenantId, `/forecasts?${params.toString()}`),
-    { method: "POST" },
-  );
+  return authedJson<ForecastRunSummary>(`/forecasts?${params.toString()}`, { method: "POST" });
 }
 
-/** Read the tenant's forecasts, optionally filtered to one `(store, sku)`. */
-export async function getForecasts(
-  tenantId: string,
-  filter?: { storeId?: string; skuId?: string },
-): Promise<ForecastItem[]> {
+export async function getForecasts(filter?: {
+  storeId?: string;
+  skuId?: string;
+}): Promise<ForecastItem[]> {
   const params = new URLSearchParams();
   if (filter?.storeId) params.set("store_id", filter.storeId);
   if (filter?.skuId) params.set("sku_id", filter.skuId);
   const qs = params.toString();
-  return requestJson<ForecastItem[]>(
-    tenantPath(tenantId, `/forecasts${qs ? `?${qs}` : ""}`),
-  );
+  return authedJson<ForecastItem[]>(`/forecasts${qs ? `?${qs}` : ""}`);
 }
 
-/** Reorder-policy inputs (API query params; not yet persisted server-side). */
 export interface ReorderParams {
   leadTimeDays: number;
   serviceLevel: number;
   onHand: number;
 }
 
-/** Per-series reorder suggestions from `GET /tenants/{id}/reorder-suggestions`. */
-export async function getReorderSuggestions(
-  tenantId: string,
-  params: ReorderParams,
-): Promise<ReorderItem[]> {
+export async function getReorderSuggestions(params: ReorderParams): Promise<ReorderItem[]> {
   const qs = new URLSearchParams({
     lead_time_days: String(params.leadTimeDays),
     service_level: String(params.serviceLevel),
     on_hand: String(params.onHand),
   }).toString();
-  return requestJson<ReorderItem[]>(
-    tenantPath(tenantId, `/reorder-suggestions?${qs}`),
-  );
+  return authedJson<ReorderItem[]>(`/reorder-suggestions?${qs}`);
 }
 
-/** Rolling-WAPE-by-week accuracy curve from `GET /tenants/{id}/accuracy`. */
-export async function getAccuracy(tenantId: string): Promise<AccuracyPoint[]> {
-  return requestJson<AccuracyPoint[]>(tenantPath(tenantId, "/accuracy"));
+export async function getAccuracy(): Promise<AccuracyPoint[]> {
+  return authedJson<AccuracyPoint[]>("/accuracy");
 }
 
-/** Before/after policy KPIs from `GET /tenants/{id}/simulation-kpis`. */
-export async function getSimulationKpis(
-  tenantId: string,
-  params: ReorderParams,
-): Promise<KpiComparison> {
+export async function getSimulationKpis(params: ReorderParams): Promise<KpiComparison> {
   const qs = new URLSearchParams({
     lead_time_days: String(params.leadTimeDays),
     service_level: String(params.serviceLevel),
   }).toString();
-  return requestJson<KpiComparison>(
-    tenantPath(tenantId, `/simulation-kpis?${qs}`),
-  );
+  return authedJson<KpiComparison>(`/simulation-kpis?${qs}`);
 }
 
 /**
  * Backfill the accuracy history by generating forecasts at several past weekly
  * cutoffs, so horizon dates overlap realised actuals and the curve fills in.
- *
- * `lastSaleDate` is the most recent date with sales; we step back weekly from
- * `horizon` days before it (leaving room for the forecast to land on actuals)
- * for `weeks` cutoffs. Returns how many cutoffs were generated.
  */
-export async function backfillAccuracy(
-  tenantId: string,
-  opts: { lastSaleDate: string; weeks?: number; horizon?: number },
-): Promise<number> {
+export async function backfillAccuracy(opts: {
+  lastSaleDate: string;
+  weeks?: number;
+  horizon?: number;
+}): Promise<number> {
   const horizon = opts.horizon ?? 7;
   const weeks = opts.weeks ?? 8;
   const last = new Date(`${opts.lastSaleDate}T00:00:00Z`);
@@ -207,7 +271,7 @@ export async function backfillAccuracy(
     const cutoff = new Date(last);
     cutoff.setUTCDate(cutoff.getUTCDate() - horizon - i * 7);
     const asOf = cutoff.toISOString().slice(0, 10);
-    await generateForecasts(tenantId, horizon, asOf);
+    await generateForecasts(horizon, asOf);
     count += 1;
   }
   return count;

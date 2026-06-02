@@ -59,7 +59,10 @@ export default function Home() {
           and it gets measurably smarter every week.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/upload" className={cn(buttonVariants())}>
+          <Link href="/login" className={cn(buttonVariants())}>
+            Get started
+          </Link>
+          <Link href="/upload" className={cn(buttonVariants({ variant: "outline" }))}>
             Upload sales history
           </Link>
           <Link href="/accuracy" className={cn(buttonVariants({ variant: "outline" }))}>
