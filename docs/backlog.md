@@ -60,9 +60,9 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 
 ## Phase 7 — Multi-tenant SaaS (custom auth)
 > ⚠️ Security-sensitive — needs a full security review before launch (CLAUDE.md, ADR-006).
-- [ ] `feat(api): custom auth — signup/login (Argon2id), JWT access + refresh cookies`
+- [x] `feat(api): custom auth — signup/login (Argon2id), JWT access + refresh cookies` (#73 primitives, #75 endpoints)
   - [x] security primitives: Argon2id hash/verify + JWT access/refresh helpers (#73)
-  - [ ] User model + Alembic migration, signup/login endpoints, refresh cookies
+  - [x] User model + Alembic migration, signup/login endpoints, refresh cookies (#75)
 - [ ] `feat(api): refresh-token rotation + reuse detection`
 - [ ] `feat(api): email verification + password reset`
 - [ ] `feat(api): tenant_id isolation middleware + RLS`
