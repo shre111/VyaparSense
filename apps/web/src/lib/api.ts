@@ -34,6 +34,20 @@ export interface ForecastItem {
   predicted_units: number;
 }
 
+/** One reorder recommendation from `GET /tenants/{id}/reorder-suggestions`. */
+export interface ReorderItem {
+  store_id: string;
+  sku_id: string;
+  service_level: number;
+  lead_time_days: number;
+  on_hand: number;
+  reorder_point: number;
+  safety_stock: number;
+  should_reorder: boolean;
+  order_quantity: number;
+  days_of_cover: number;
+}
+
 /** Raised for non-2xx API responses, carrying the server's detail message. */
 export class ApiError extends Error {
   constructor(
@@ -102,5 +116,27 @@ export async function getForecasts(
   const qs = params.toString();
   return requestJson<ForecastItem[]>(
     tenantPath(tenantId, `/forecasts${qs ? `?${qs}` : ""}`),
+  );
+}
+
+/** Reorder-policy inputs (API query params; not yet persisted server-side). */
+export interface ReorderParams {
+  leadTimeDays: number;
+  serviceLevel: number;
+  onHand: number;
+}
+
+/** Per-series reorder suggestions from `GET /tenants/{id}/reorder-suggestions`. */
+export async function getReorderSuggestions(
+  tenantId: string,
+  params: ReorderParams,
+): Promise<ReorderItem[]> {
+  const qs = new URLSearchParams({
+    lead_time_days: String(params.leadTimeDays),
+    service_level: String(params.serviceLevel),
+    on_hand: String(params.onHand),
+  }).toString();
+  return requestJson<ReorderItem[]>(
+    tenantPath(tenantId, `/reorder-suggestions?${qs}`),
   );
 }
