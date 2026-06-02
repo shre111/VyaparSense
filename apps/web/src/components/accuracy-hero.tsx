@@ -31,7 +31,6 @@ type Status =
 const PARAMS = { leadTimeDays: 7, serviceLevel: 0.95, onHand: 0 };
 
 export function AccuracyHero() {
-  const [tenantId, setTenantId] = React.useState("demo");
   const [historyEnd, setHistoryEnd] = React.useState("2025-12-30");
   const [status, setStatus] = React.useState<Status>({ kind: "idle" });
 
@@ -41,17 +40,12 @@ export function AccuracyHero() {
       : "Could not reach the API. Is the backend running?";
 
   async function load() {
-    const tenant = tenantId.trim();
-    const [points, kpis] = await Promise.all([
-      getAccuracy(tenant),
-      getSimulationKpis(tenant, PARAMS),
-    ]);
+    const [points, kpis] = await Promise.all([getAccuracy(), getSimulationKpis(PARAMS)]);
     setStatus({ kind: "ready", points, kpis });
   }
 
   async function handleLoad(event: React.FormEvent) {
     event.preventDefault();
-    if (!tenantId.trim()) return;
     setStatus({ kind: "working", label: "Loading…" });
     try {
       await load();
@@ -63,7 +57,7 @@ export function AccuracyHero() {
   async function handleBackfill() {
     setStatus({ kind: "working", label: "Building accuracy history…" });
     try {
-      await backfillAccuracy(tenantId.trim(), { lastSaleDate: historyEnd });
+      await backfillAccuracy({ lastSaleDate: historyEnd });
       await load();
     } catch (err) {
       setStatus({ kind: "error", message: errorMessage(err) });
@@ -81,15 +75,6 @@ export function AccuracyHero() {
   return (
     <div className="flex flex-col gap-6">
       <form onSubmit={handleLoad} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Tenant
-          <input
-            value={tenantId}
-            onChange={(e) => setTenantId(e.target.value)}
-            className="h-10 w-40 rounded-md border border-input bg-background px-3 text-sm"
-            placeholder="tenant id"
-          />
-        </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           History ends
           <input

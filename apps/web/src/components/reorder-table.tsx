@@ -55,7 +55,6 @@ function NumberField({
 }
 
 export function ReorderTable() {
-  const [tenantId, setTenantId] = React.useState("demo");
   const [leadTimeDays, setLeadTimeDays] = React.useState(7);
   const [serviceLevel, setServiceLevel] = React.useState(0.95);
   const [onHand, setOnHand] = React.useState(0);
@@ -63,14 +62,9 @@ export function ReorderTable() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!tenantId.trim()) return;
     setStatus({ kind: "loading" });
     try {
-      const rows = await getReorderSuggestions(tenantId.trim(), {
-        leadTimeDays,
-        serviceLevel,
-        onHand,
-      });
+      const rows = await getReorderSuggestions({ leadTimeDays, serviceLevel, onHand });
       setStatus({ kind: "ready", rows });
     } catch (err) {
       const message =
@@ -84,15 +78,6 @@ export function ReorderTable() {
   return (
     <div className="flex flex-col gap-6">
       <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Tenant
-          <input
-            value={tenantId}
-            onChange={(e) => setTenantId(e.target.value)}
-            className="h-10 w-40 rounded-md border border-input bg-background px-3 text-sm"
-            placeholder="tenant id"
-          />
-        </label>
         <NumberField
           label="Lead time (days)"
           value={leadTimeDays}
