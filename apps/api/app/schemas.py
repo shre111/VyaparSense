@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class UploadSummary(BaseModel):
@@ -67,6 +67,27 @@ class KpiComparisonResponse(BaseModel):
     lost_sales_reduction_pct: float
     naive_avg_on_hand: float
     forecast_avg_on_hand: float
+
+
+class SignupRequest(BaseModel):
+    tenant_id: str = Field(min_length=1, max_length=64)
+    email: str = Field(min_length=3, max_length=320)
+    password: str = Field(min_length=8, max_length=1024)
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    password: str = Field(min_length=1, max_length=1024)
+
+
+class AuthResponse(BaseModel):
+    """Login/signup result: the access token in the body; refresh set as a cookie."""
+
+    access_token: str
+    token_type: str = "bearer"
+    user_id: int
+    tenant_id: str
+    email: str
 
 
 class HealthResponse(BaseModel):

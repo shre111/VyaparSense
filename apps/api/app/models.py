@@ -36,6 +36,24 @@ class Tenant(Base):
     uploads: Mapped[list[Upload]] = relationship(back_populates="tenant")
 
 
+class User(Base):
+    """An authenticated user, scoped to a tenant (ADR-006).
+
+    ``password_hash`` is an Argon2id encoded hash (never the plaintext); see
+    ``app.security``. Email is unique across the system and stored lower-cased.
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class Upload(Base):
     __tablename__ = "uploads"
 
