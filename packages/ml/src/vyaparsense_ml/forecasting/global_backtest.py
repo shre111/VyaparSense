@@ -22,6 +22,7 @@ from datetime import date
 
 from vyaparsense_ml.forecasting.global_model import GlobalLightGBM
 from vyaparsense_ml.forecasting.metrics import ForecastMetrics, compute_metrics
+from vyaparsense_ml.forecasting.model_card import ModelCard, data_hash
 from vyaparsense_ml.schema import SalesRecord
 
 
@@ -155,4 +156,45 @@ def global_backtest(
         n_folds=n_done,
         n_series=len(groups),
         metrics=metrics,
+    )
+
+
+def card_from_global_backtest(
+    records: Sequence[SalesRecord],
+    result: GlobalBacktestResult,
+    model: GlobalLightGBM,
+    *,
+    min_train_days: int,
+    horizon: int,
+    n_folds: int,
+    notes: str = "",
+) -> ModelCard:
+    """Build a :class:`ModelCard` capturing a global-model backtest run.
+
+    Records the data hash, feature list, model params, metrics, backtest setup,
+    and library versions so the run is reproducible (``CLAUDE.md`` §7).
+    """
+    import lightgbm as lgb
+
+    return ModelCard(
+        model=result.model,
+        data_hash=data_hash(records),
+        n_rows=len(records),
+        n_series=result.n_series,
+        metrics=result.metrics,
+        features=model.feature_cols,
+        params={
+            **model.resolved_params(),
+            "num_boost_round": model.num_boost_round,
+            "lags": list(model.lags),
+            "roll_windows": list(model.roll_windows),
+        },
+        backtest={
+            "min_train_days": min_train_days,
+            "horizon": horizon,
+            "n_folds_requested": n_folds,
+            "n_folds_run": result.n_folds,
+        },
+        library_versions={"lightgbm": lgb.__version__},
+        notes=notes,
     )

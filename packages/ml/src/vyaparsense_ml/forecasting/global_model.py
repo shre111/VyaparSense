@@ -76,7 +76,7 @@ class GlobalLightGBM:
     def feature_cols(self) -> list[str]:
         return feature_columns(self.lags, self.roll_windows)
 
-    def _resolved_params(self) -> dict[str, object]:
+    def resolved_params(self) -> dict[str, object]:
         merged = {**DEFAULT_PARAMS, **self.params}
         merged["seed"] = self.seed
         return merged
@@ -90,7 +90,7 @@ class GlobalLightGBM:
         y = frame[COL_UNITS_SOLD]
         dataset = lgb.Dataset(x, label=y, free_raw_data=False)
         self._booster = lgb.train(
-            self._resolved_params(),
+            self.resolved_params(),
             dataset,
             num_boost_round=self.num_boost_round,
         )
