@@ -46,7 +46,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 ## Cross-cutting — API integration (wire packages/ml into apps/api)
 > Bridges the ML library into the FastAPI service so the frontend has real data.
 - [x] `feat(api): forecast generation + read endpoints (baselines, sync)` (#55)
-- [ ] `feat(api): accuracy-over-time endpoint (rolling WAPE: past forecasts vs actuals)`
+- [x] `feat(api): accuracy-over-time endpoint (rolling WAPE: past forecasts vs actuals)` (#57)
 - [ ] `feat(api): reorder-suggestion + simulation-KPI endpoints`
 - [ ] `feat(api): async worker for heavy models (classical / global LightGBM) (ADR-007)`
 
