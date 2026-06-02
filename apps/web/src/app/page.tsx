@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { LineChart, PackageCheck, Upload } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
@@ -56,6 +58,11 @@ export default function Home() {
           VyaparSense learns your demand and tells you exactly what to reorder —
           and it gets measurably smarter every week.
         </p>
+        <div className="mt-8">
+          <Link href="/upload" className={cn(buttonVariants())}>
+            Upload sales history
+          </Link>
+        </div>
       </section>
 
       <section className="mx-auto mt-16 grid max-w-5xl gap-6 sm:grid-cols-3">
