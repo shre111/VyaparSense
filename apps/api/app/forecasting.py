@@ -54,13 +54,19 @@ def generate_forecasts(
     *,
     horizon: int = 7,
     season_length: int = 7,
+    as_of: dt.date | None = None,
     models: Sequence[Baseline] | None = None,
 ) -> list[ForecastRow]:
     """Select the best baseline per series and forecast ``horizon`` days ahead.
 
-    Series too short for even one backtest fold are skipped (they have no
-    evidence to select on yet). Returns one :class:`ForecastRow` per forecast
-    day per forecastable series, dated forward from each series' last date.
+    With ``as_of`` set, each series is truncated to dates ``<= as_of`` before
+    selection/forecasting, and forecasts are dated forward from ``as_of``. This
+    is how the accuracy backfill works: forecasting "as of" a past cutoff yields
+    horizon dates that already have realised actuals to score against. Without
+    it, forecasts run forward from each series' last observed date.
+
+    Series too short for even one backtest fold (after truncation) are skipped.
+    Returns one :class:`ForecastRow` per forecast day per forecastable series.
 
     Raises:
         ValueError: invalid ``horizon``.
@@ -68,6 +74,9 @@ def generate_forecasts(
     if horizon < 1:
         raise ValueError(f"horizon must be >= 1, got {horizon}")
     candidates = list(models) if models is not None else DEFAULT_MODELS
+
+    if as_of is not None:
+        series = {key: [(d, u) for d, u in pts if d <= as_of] for key, pts in series.items()}
 
     # select_per_series raises for series too short for a fold; filter to those
     # with enough history so one bad series doesn't fail the whole batch.

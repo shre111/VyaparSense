@@ -10,6 +10,7 @@ models (classical / global LightGBM) move to the async worker per ADR-007.
 
 from __future__ import annotations
 
+import datetime as dt
 import math
 from typing import Annotated
 
@@ -32,10 +33,17 @@ def create_forecasts(
     tenant_id: str,
     session: SessionDep,
     horizon: Annotated[int, Query(ge=1, le=90)] = 7,
+    as_of: Annotated[dt.date | None, Query()] = None,
 ) -> ForecastRunSummary:
-    """Generate and persist ``horizon``-day forecasts for the tenant's series."""
+    """Generate and persist ``horizon``-day forecasts for the tenant's series.
+
+    With ``as_of`` (a past date), each series is truncated to that cutoff and
+    forecasts run forward from it — so their horizon dates fall on days that
+    already have realised actuals. Generating across several ``as_of`` cutoffs
+    backfills the accuracy-over-time history.
+    """
     series = repository.load_series(session, tenant_id)
-    rows = generate_forecasts(series, horizon=horizon)
+    rows = generate_forecasts(series, horizon=horizon, as_of=as_of)
     created = repository.store_forecasts(session, tenant_id, rows)
     series_forecast = len({(r.store_id, r.sku_id) for r in rows})
     return ForecastRunSummary(
