@@ -1,11 +1,11 @@
 """Accuracy-over-time service — the "getting smarter" flywheel metric.
 
-Buckets realised forecast-vs-actual pairs by the period in which the forecast
-was *made* (ISO year-week of ``created_at``) and computes a pooled WAPE per
-period. Plotting these chronologically is the public proof that the model
-improves week over week (``CLAUDE.md`` §5, the hero chart).
+Buckets realised forecast-vs-actual pairs by the ISO year-week of the period
+being predicted (the forecast's ``horizon_date``) and computes a pooled WAPE per
+week. Plotting these chronologically is the public proof that the model improves
+week over week (``CLAUDE.md`` §5, the hero chart).
 
-Pure functions over already-joined ``(created_at, predicted, actual)`` tuples
+Pure functions over already-joined ``(horizon_date, predicted, actual)`` tuples
 (see ``repository.forecast_actual_pairs``); WAPE comes from the ML library so
 the API and library never disagree on the metric definition.
 """
@@ -34,17 +34,17 @@ def _iso_week_label(when: dt.datetime | dt.date) -> str:
 
 
 def accuracy_over_time(
-    pairs: list[tuple[dt.datetime, float, float]],
+    pairs: list[tuple[dt.date, float, float]],
 ) -> list[AccuracyPoint]:
-    """Rolling WAPE by forecast-run week, oldest period first.
+    """Rolling WAPE by predicted-period week, oldest period first.
 
-    ``pairs`` are ``(forecast_created_at, predicted, actual)``. Pairs are grouped
-    by the ISO week of ``created_at`` and each group is scored with pooled WAPE.
+    ``pairs`` are ``(horizon_date, predicted, actual)``. Pairs are grouped by the
+    ISO week of ``horizon_date`` and each group is scored with pooled WAPE.
     Empty input yields an empty list.
     """
     buckets: dict[str, list[tuple[float, float]]] = defaultdict(list)
-    for created_at, predicted, actual in pairs:
-        buckets[_iso_week_label(created_at)].append((actual, predicted))
+    for horizon_date, predicted, actual in pairs:
+        buckets[_iso_week_label(horizon_date)].append((actual, predicted))
 
     points: list[AccuracyPoint] = []
     for period in sorted(buckets):

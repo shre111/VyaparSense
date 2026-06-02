@@ -100,3 +100,32 @@ def test_forecast_tenant_isolation(client: TestClient) -> None:
     client.post("/tenants/acme/forecasts?horizon=7")
     # another tenant has no forecasts
     assert client.get("/tenants/other/forecasts").json() == []
+
+
+def test_as_of_dates_forecasts_from_cutoff(client: TestClient) -> None:
+    # history spans 2024-01-01 .. 2024-02-29 (60 days). Forecast as of 2024-02-10
+    # (keeps 41 days >= min_train 28 + horizon 7) -> horizon dates 2024-02-11..17,
+    # all of which already have actuals.
+    client.post("/tenants/acme/uploads", files=_csv(_history_csv(days=60)))
+    resp = client.post("/tenants/acme/forecasts?horizon=7&as_of=2024-02-10")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["forecasts_created"] == 7
+    items = client.get("/tenants/acme/forecasts").json()
+    dates = sorted(i["horizon_date"] for i in items)
+    assert dates[0] == "2024-02-11"
+    assert dates[-1] == "2024-02-17"
+
+
+def test_as_of_backfill_populates_accuracy(client: TestClient) -> None:
+    # generating forecasts at a past cutoff yields horizon dates with realised
+    # actuals, so the accuracy endpoint reports a non-empty curve.
+    client.post("/tenants/acme/uploads", files=_csv(_history_csv(days=60)))
+    client.post("/tenants/acme/forecasts?horizon=7&as_of=2024-02-10")
+    acc = client.get("/tenants/acme/accuracy").json()
+    assert len(acc) >= 1
+    assert all(pt["n"] >= 1 for pt in acc)
+
+
+def test_invalid_as_of_rejected(client: TestClient) -> None:
+    client.post("/tenants/acme/uploads", files=_csv(_history_csv()))
+    assert client.post("/tenants/acme/forecasts?as_of=not-a-date").status_code == 422

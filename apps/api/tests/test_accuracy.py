@@ -1,4 +1,8 @@
-"""Tests for the accuracy-over-time service and endpoint."""
+"""Tests for the accuracy-over-time service and endpoint.
+
+Accuracy is bucketed by the ISO week of each forecast's *horizon date* (the day
+being predicted), joined to realised actuals on the same (store, sku, date).
+"""
 
 from __future__ import annotations
 
@@ -14,12 +18,13 @@ from sqlalchemy.orm import Session, sessionmaker
 
 
 def test_accuracy_over_time_pools_wape_per_week() -> None:
-    wk1 = dt.datetime(2024, 1, 3)  # ISO 2024-W01
-    wk2 = dt.datetime(2024, 1, 10)  # ISO 2024-W02
+    wk1a = dt.date(2024, 1, 2)  # ISO 2024-W01
+    wk1b = dt.date(2024, 1, 3)  # ISO 2024-W01
+    wk2 = dt.date(2024, 1, 10)  # ISO 2024-W02
     pairs = [
         # week 1: actuals [10, 20], preds [12, 18] -> |err| 2+2=4, sum|y|=30 -> 0.1333
-        (wk1, 12.0, 10.0),
-        (wk1, 18.0, 20.0),
+        (wk1a, 12.0, 10.0),
+        (wk1b, 18.0, 20.0),
         # week 2: perfect
         (wk2, 5.0, 5.0),
     ]
@@ -31,15 +36,15 @@ def test_accuracy_over_time_pools_wape_per_week() -> None:
 
 
 def test_accuracy_over_time_sorted_chronologically() -> None:
-    early = dt.datetime(2024, 1, 3)
-    late = dt.datetime(2024, 2, 14)
+    early = dt.date(2024, 1, 3)
+    late = dt.date(2024, 2, 14)
     pairs = [(late, 5.0, 4.0), (early, 5.0, 4.0)]
     periods = [p.period for p in accuracy_over_time(pairs)]
     assert periods == sorted(periods)
 
 
 def test_accuracy_over_time_zero_actuals_is_inf() -> None:
-    pairs = [(dt.datetime(2024, 1, 3), 3.0, 0.0)]  # actual 0, pred 3 -> inf
+    pairs = [(dt.date(2024, 1, 3), 3.0, 0.0)]  # actual 0, pred 3 -> inf
     pt = accuracy_over_time(pairs)[0]
     assert math.isinf(pt.wape)
 
@@ -55,7 +60,7 @@ def _seed(
     session_factory: sessionmaker[Session],
     *,
     tenant: str,
-    forecasts: list[tuple[dt.datetime, dt.date, float]],
+    forecasts: list[tuple[dt.date, float]],  # (horizon_date, predicted)
     actuals: list[tuple[dt.date, int]],
     store: str = "S1",
     sku: str = "K1",
@@ -63,7 +68,7 @@ def _seed(
     s = session_factory()
     try:
         s.add(Tenant(id=tenant, name=tenant))
-        for created_at, horizon_date, pred in forecasts:
+        for horizon_date, pred in forecasts:
             s.add(
                 Forecast(
                     tenant_id=tenant,
@@ -73,7 +78,6 @@ def _seed(
                     horizon_date=horizon_date,
                     predicted_units=pred,
                     quantile=None,
-                    created_at=created_at,
                 )
             )
         for date, units in actuals:
@@ -101,7 +105,7 @@ def test_accuracy_endpoint_joins_forecasts_to_actuals(
     _seed(
         session_factory,
         tenant="acme",
-        forecasts=[(dt.datetime(2024, 1, 1), d, 12.0)],  # predicted 12 for Jan 8
+        forecasts=[(d, 12.0)],  # predicted 12 for Jan 8
         actuals=[(d, 10)],  # realised 10
     )
     resp = client.get("/tenants/acme/accuracy")
@@ -119,7 +123,7 @@ def test_accuracy_endpoint_skips_unrealised_forecasts(
     _seed(
         session_factory,
         tenant="acme",
-        forecasts=[(dt.datetime(2024, 1, 1), dt.date(2024, 1, 8), 12.0)],
+        forecasts=[(dt.date(2024, 1, 8), 12.0)],
         actuals=[(dt.date(2024, 1, 9), 10)],  # different date
     )
     resp = client.get("/tenants/acme/accuracy")
@@ -134,7 +138,7 @@ def test_accuracy_endpoint_zero_actual_returns_null_wape(
     _seed(
         session_factory,
         tenant="acme",
-        forecasts=[(dt.datetime(2024, 1, 1), d, 3.0)],
+        forecasts=[(d, 3.0)],
         actuals=[(d, 0)],  # zero actual -> WAPE undefined -> null
     )
     body = client.get("/tenants/acme/accuracy").json()
