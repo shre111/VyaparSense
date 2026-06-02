@@ -51,7 +51,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [ ] `feat(api): async worker for heavy models (classical / global LightGBM) (ADR-007)`
 
 ## Phase 6 — Frontend
-- [ ] `feat(web): scaffold Next.js app + Tailwind + shadcn/ui`
+- [x] `feat(web): scaffold Next.js app + Tailwind + shadcn/ui` (#61)
 - [ ] `feat(web): CSV upload + job-status UX`
 - [ ] `feat(web): per-SKU forecast chart with confidence band`
 - [ ] `feat(web): reorder suggestions table`
