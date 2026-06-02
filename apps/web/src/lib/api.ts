@@ -17,6 +17,23 @@ export interface UploadSummary {
   patterns: Record<string, number>;
 }
 
+/** Summary returned by `POST /tenants/{id}/forecasts`. */
+export interface ForecastRunSummary {
+  tenant_id: string;
+  horizon: number;
+  series_forecast: number;
+  forecasts_created: number;
+}
+
+/** One forecast point from `GET /tenants/{id}/forecasts`. */
+export interface ForecastItem {
+  store_id: string;
+  sku_id: string;
+  model: string;
+  horizon_date: string; // ISO date
+  predicted_units: number;
+}
+
 /** Raised for non-2xx API responses, carrying the server's detail message. */
 export class ApiError extends Error {
   constructor(
@@ -38,6 +55,18 @@ async function detail(res: Response): Promise<string> {
   return res.statusText || `request failed (${res.status})`;
 }
 
+async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, init);
+  if (!res.ok) {
+    throw new ApiError(res.status, await detail(res));
+  }
+  return (await res.json()) as T;
+}
+
+function tenantPath(tenantId: string, suffix: string): string {
+  return `/tenants/${encodeURIComponent(tenantId)}${suffix}`;
+}
+
 /** Upload a sales-history CSV for a tenant; returns the parsed summary. */
 export async function uploadSalesCsv(
   tenantId: string,
@@ -45,12 +74,33 @@ export async function uploadSalesCsv(
 ): Promise<UploadSummary> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(
-    `${API_BASE_URL}/tenants/${encodeURIComponent(tenantId)}/uploads`,
-    { method: "POST", body: form },
+  return requestJson<UploadSummary>(tenantPath(tenantId, "/uploads"), {
+    method: "POST",
+    body: form,
+  });
+}
+
+/** Generate and persist `horizon`-day forecasts for the tenant's series. */
+export async function generateForecasts(
+  tenantId: string,
+  horizon = 7,
+): Promise<ForecastRunSummary> {
+  return requestJson<ForecastRunSummary>(
+    tenantPath(tenantId, `/forecasts?horizon=${horizon}`),
+    { method: "POST" },
   );
-  if (!res.ok) {
-    throw new ApiError(res.status, await detail(res));
-  }
-  return (await res.json()) as UploadSummary;
+}
+
+/** Read the tenant's forecasts, optionally filtered to one `(store, sku)`. */
+export async function getForecasts(
+  tenantId: string,
+  filter?: { storeId?: string; skuId?: string },
+): Promise<ForecastItem[]> {
+  const params = new URLSearchParams();
+  if (filter?.storeId) params.set("store_id", filter.storeId);
+  if (filter?.skuId) params.set("sku_id", filter.skuId);
+  const qs = params.toString();
+  return requestJson<ForecastItem[]>(
+    tenantPath(tenantId, `/forecasts${qs ? `?${qs}` : ""}`),
+  );
 }
