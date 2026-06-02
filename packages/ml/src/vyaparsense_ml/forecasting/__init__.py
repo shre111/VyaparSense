@@ -20,6 +20,8 @@ Public API::
         build_features, feature_columns,            # global-model features
         GlobalLightGBM,                             # global ML model
         global_backtest, GlobalBacktestResult,
+        ModelCard, data_hash, write_card,           # model cards (reproducibility)
+        card_from_global_backtest,
     )
 """
 
@@ -40,6 +42,7 @@ from vyaparsense_ml.forecasting.features import (
 )
 from vyaparsense_ml.forecasting.global_backtest import (
     GlobalBacktestResult,
+    card_from_global_backtest,
     global_backtest,
 )
 from vyaparsense_ml.forecasting.global_model import (
@@ -59,6 +62,11 @@ from vyaparsense_ml.forecasting.metrics import (
     mase,
     rmse,
     wape,
+)
+from vyaparsense_ml.forecasting.model_card import (
+    ModelCard,
+    data_hash,
+    write_card,
 )
 from vyaparsense_ml.forecasting.models import (
     Baseline,
@@ -98,6 +106,7 @@ __all__ = [
     "ForecastMetrics",
     "GlobalBacktestResult",
     "GlobalLightGBM",
+    "ModelCard",
     "MovingAverage",
     "Naive",
     "QuantileBacktestResult",
@@ -107,8 +116,10 @@ __all__ = [
     "backtest",
     "bias",
     "build_features",
+    "card_from_global_backtest",
     "compute_metrics",
     "coverage",
+    "data_hash",
     "feature_columns",
     "global_backtest",
     "mae",
@@ -121,4 +132,5 @@ __all__ = [
     "select_model",
     "select_per_series",
     "wape",
+    "write_card",
 ]
