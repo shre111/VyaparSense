@@ -39,6 +39,12 @@ class ForecastRunSummary(BaseModel):
     forecasts_created: int
 
 
+class AccuracyPointItem(BaseModel):
+    period: str
+    n: int
+    wape: float | None  # None when undefined (zero actual demand in the period)
+
+
 class HealthResponse(BaseModel):
     status: str
     version: str
