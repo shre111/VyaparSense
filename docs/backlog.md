@@ -51,12 +51,12 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(api): as-of forecast cutoff + accuracy bucketed by horizon week (enables the hero chart)` (#69)
 - [ ] `feat(api): async worker for heavy models (classical / global LightGBM) (ADR-007)`
 
-## Phase 6 — Frontend
+## Phase 6 — Frontend ✅
 - [x] `feat(web): scaffold Next.js app + Tailwind + shadcn/ui` (#61)
 - [x] `feat(web): CSV upload + job-status UX` (#63; sync upload — job-status UX follows the async worker)
 - [x] `feat(web): per-SKU forecast chart` (#65; point line — confidence band follows a quantile read endpoint)
 - [x] `feat(web): reorder suggestions table` (#67)
-- [ ] `feat(web): accuracy-over-time hero chart (rolling WAPE)`
+- [x] `feat(web): accuracy-over-time hero chart (rolling WAPE)` (#71; + KPI cards, backfill via as-of)
 
 ## Phase 7 — Multi-tenant SaaS (custom auth)
 - [ ] `feat(api): custom auth — signup/login (Argon2id), JWT access + refresh cookies`
