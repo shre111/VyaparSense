@@ -40,7 +40,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 
 ## Phase 5 — Replenishment
 - [x] `feat(ml): safety stock + reorder point + EOQ + days-of-cover` (#49)
-- [ ] `feat(ml): service-level targets → reorder suggestions`
+- [x] `feat(ml): service-level targets → reorder suggestions` (#51)
 - [ ] `feat(ml): simulated stockout / dead-stock KPIs`
 
 ## Phase 6 — Frontend
