@@ -20,6 +20,12 @@ export default function UploadPage() {
       <div className="mt-8">
         <UploadForm />
       </div>
+      <p className="mt-6 text-sm text-muted-foreground">
+        Uploaded some history?{" "}
+        <Link href="/forecasts" className="text-primary hover:underline">
+          Generate forecasts →
+        </Link>
+      </p>
     </main>
   );
 }
