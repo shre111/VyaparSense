@@ -63,7 +63,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(api): custom auth — signup/login (Argon2id), JWT access + refresh cookies` (#73 primitives, #75 endpoints)
   - [x] security primitives: Argon2id hash/verify + JWT access/refresh helpers (#73)
   - [x] User model + Alembic migration, signup/login endpoints, refresh cookies (#75)
-- [ ] `feat(api): refresh-token rotation + reuse detection`
+- [x] `feat(api): refresh-token rotation + reuse detection` (#77; + `GET /auth/me` + access-token dependency)
 - [ ] `feat(api): email verification + password reset`
 - [ ] `feat(api): tenant_id isolation middleware + RLS`
 - [ ] `feat(api): rate limiting + CSRF protection for cookie auth`
