@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from vyaparsense_ml.schema import SalesRecord
 
 from app.forecasting import ForecastRow
-from app.models import Forecast, SalesRecordRow, Tenant, Upload
+from app.models import Forecast, SalesRecordRow, Tenant, Upload, User
 
 SeriesKey = tuple[str, str]
 
@@ -21,6 +21,30 @@ def ensure_tenant(session: Session, tenant_id: str, name: str | None = None) -> 
         session.add(tenant)
         session.flush()
     return tenant
+
+
+def get_user_by_email(session: Session, email: str) -> User | None:
+    """Look up a user by (lower-cased) email; None if not found."""
+    stmt = select(User).where(User.email == email.strip().lower())
+    return session.scalars(stmt).first()
+
+
+def create_user(session: Session, *, tenant_id: str, email: str, password_hash: str) -> User:
+    """Create a user under a tenant (creating the tenant if needed).
+
+    Caller must ensure the email is not already taken (see
+    :func:`get_user_by_email`); the DB also enforces a unique constraint.
+    """
+    ensure_tenant(session, tenant_id)
+    user = User(
+        tenant_id=tenant_id,
+        email=email.strip().lower(),
+        password_hash=password_hash,
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
 
 
 def store_upload(
