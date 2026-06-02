@@ -17,6 +17,9 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2.4",
     "python-multipart>=0.0.9",
+    # Custom auth (ADR-006): Argon2id password hashing + JWT tokens.
+    "argon2-cffi>=23",
+    "pyjwt>=2.8",
     "vyaparsense-ml",
 ]
 

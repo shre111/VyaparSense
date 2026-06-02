@@ -11,7 +11,13 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://vyaparsense:vyaparsense@localhost:5432/vyaparsense"
     redis_url: str = "redis://localhost:6379/0"
     api_env: str = "development"
+
+    # --- Auth (ADR-006). Override auth_secret in production via env. ---
     auth_secret: str = "change-me-in-production"
+    auth_jwt_algorithm: str = "HS256"
+    #: Short-lived access tokens; longer-lived rotating refresh tokens.
+    access_token_ttl_minutes: int = 15
+    refresh_token_ttl_days: int = 30
 
 
 def get_settings() -> Settings:
