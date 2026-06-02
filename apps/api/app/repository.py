@@ -129,3 +129,34 @@ def list_forecasts(
         stmt = stmt.where(Forecast.sku_id == sku_id)
     stmt = stmt.order_by(Forecast.created_at.desc(), Forecast.id.desc())
     return list(session.scalars(stmt))
+
+
+def forecast_actual_pairs(
+    session: Session, tenant_id: str
+) -> list[tuple[dt.datetime, float, float]]:
+    """Join a tenant's point forecasts to realised actuals for accuracy scoring.
+
+    Matches each point forecast (``quantile IS NULL``) to the realised
+    ``sales_records`` demand on the same ``(store, sku, date)``. Returns
+    ``(forecast_created_at, predicted_units, actual_units)`` for every forecast
+    that has a realised actual — the raw material for rolling WAPE over time.
+    """
+    stmt = (
+        select(
+            Forecast.created_at,
+            Forecast.predicted_units,
+            SalesRecordRow.units_sold,
+        )
+        .join(
+            SalesRecordRow,
+            (SalesRecordRow.tenant_id == Forecast.tenant_id)
+            & (SalesRecordRow.store_id == Forecast.store_id)
+            & (SalesRecordRow.sku_id == Forecast.sku_id)
+            & (SalesRecordRow.date == Forecast.horizon_date),
+        )
+        .where(Forecast.tenant_id == tenant_id, Forecast.quantile.is_(None))
+    )
+    return [
+        (created_at, float(predicted), float(actual))
+        for created_at, predicted, actual in session.execute(stmt)
+    ]

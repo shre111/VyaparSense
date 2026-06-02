@@ -10,15 +10,17 @@ models (classical / global LightGBM) move to the async worker per ADR-007.
 
 from __future__ import annotations
 
+import math
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app import repository
+from app.accuracy import accuracy_over_time
 from app.db import get_session
 from app.forecasting import generate_forecasts
-from app.schemas import ForecastItem, ForecastRunSummary
+from app.schemas import AccuracyPointItem, ForecastItem, ForecastRunSummary
 
 router = APIRouter(tags=["forecasts"])
 
@@ -61,4 +63,23 @@ def get_forecasts(
             predicted_units=f.predicted_units,
         )
         for f in repository.list_forecasts(session, tenant_id, store_id=store_id, sku_id=sku_id)
+    ]
+
+
+@router.get("/tenants/{tenant_id}/accuracy", response_model=list[AccuracyPointItem])
+def get_accuracy(tenant_id: str, session: SessionDep) -> list[AccuracyPointItem]:
+    """Rolling WAPE by forecast-run week — the "getting smarter" chart data.
+
+    Joins the tenant's past point forecasts to realised actuals and pools WAPE
+    per ISO week the forecast was made, oldest first. Undefined WAPE (a period
+    with zero actual demand) is returned as ``null``.
+    """
+    pairs = repository.forecast_actual_pairs(session, tenant_id)
+    return [
+        AccuracyPointItem(
+            period=pt.period,
+            n=pt.n,
+            wape=None if math.isinf(pt.wape) else pt.wape,
+        )
+        for pt in accuracy_over_time(pairs)
     ]
