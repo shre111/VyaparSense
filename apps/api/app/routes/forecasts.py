@@ -14,24 +14,21 @@ import datetime as dt
 import math
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Query
 
 from app import repository
 from app.accuracy import accuracy_over_time
-from app.db import get_session
+from app.deps import CurrentTenant, SessionDep
 from app.forecasting import generate_forecasts
 from app.schemas import AccuracyPointItem, ForecastItem, ForecastRunSummary
 
 router = APIRouter(tags=["forecasts"])
 
-SessionDep = Annotated[Session, Depends(get_session)]
 
-
-@router.post("/tenants/{tenant_id}/forecasts", response_model=ForecastRunSummary)
+@router.post("/forecasts", response_model=ForecastRunSummary)
 def create_forecasts(
-    tenant_id: str,
     session: SessionDep,
+    tenant_id: CurrentTenant,
     horizon: Annotated[int, Query(ge=1, le=90)] = 7,
     as_of: Annotated[dt.date | None, Query()] = None,
 ) -> ForecastRunSummary:
@@ -54,10 +51,10 @@ def create_forecasts(
     )
 
 
-@router.get("/tenants/{tenant_id}/forecasts", response_model=list[ForecastItem])
+@router.get("/forecasts", response_model=list[ForecastItem])
 def get_forecasts(
-    tenant_id: str,
     session: SessionDep,
+    tenant_id: CurrentTenant,
     store_id: Annotated[str | None, Query()] = None,
     sku_id: Annotated[str | None, Query()] = None,
 ) -> list[ForecastItem]:
@@ -74,8 +71,8 @@ def get_forecasts(
     ]
 
 
-@router.get("/tenants/{tenant_id}/accuracy", response_model=list[AccuracyPointItem])
-def get_accuracy(tenant_id: str, session: SessionDep) -> list[AccuracyPointItem]:
+@router.get("/accuracy", response_model=list[AccuracyPointItem])
+def get_accuracy(session: SessionDep, tenant_id: CurrentTenant) -> list[AccuracyPointItem]:
     """Rolling WAPE by forecast-run week — the "getting smarter" chart data.
 
     Joins the tenant's past point forecasts to realised actuals and pools WAPE

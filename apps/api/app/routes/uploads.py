@@ -5,23 +5,17 @@ from __future__ import annotations
 import csv
 import io
 from collections import Counter
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, UploadFile
 from vyaparsense_ml.classification import classify_series
 from vyaparsense_ml.cleaning import clean_sales, to_series
 from vyaparsense_ml.schema import CANONICAL_COLUMNS, SalesValidationError, validate_rows
 
 from app import repository
-from app.db import get_session
+from app.deps import CurrentTenant, SessionDep
 from app.schemas import UploadListItem, UploadSummary
 
 router = APIRouter(tags=["uploads"])
-
-#: Session dependency. Annotated form avoids a call expression in argument
-#: defaults (ruff B008), the FastAPI-recommended pattern.
-SessionDep = Annotated[Session, Depends(get_session)]
 
 
 def _parse_csv_bytes(raw: bytes) -> list[dict[str, str]]:
@@ -40,11 +34,11 @@ def _parse_csv_bytes(raw: bytes) -> list[dict[str, str]]:
     return [dict(zip(header, values, strict=False)) for values in reader]
 
 
-@router.post("/tenants/{tenant_id}/uploads", response_model=UploadSummary)
+@router.post("/uploads", response_model=UploadSummary)
 async def create_upload(
-    tenant_id: str,
     file: UploadFile,
     session: SessionDep,
+    tenant_id: CurrentTenant,
 ) -> UploadSummary:
     raw = await file.read()
     rows = _parse_csv_bytes(raw)
@@ -75,10 +69,10 @@ async def create_upload(
     )
 
 
-@router.get("/tenants/{tenant_id}/uploads", response_model=list[UploadListItem])
+@router.get("/uploads", response_model=list[UploadListItem])
 def get_uploads(
-    tenant_id: str,
     session: SessionDep,
+    tenant_id: CurrentTenant,
 ) -> list[UploadListItem]:
     return [
         UploadListItem(
