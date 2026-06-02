@@ -65,7 +65,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
   - [x] User model + Alembic migration, signup/login endpoints, refresh cookies (#75)
 - [x] `feat(api): refresh-token rotation + reuse detection` (#77; + `GET /auth/me` + access-token dependency)
 - [ ] `feat(api): email verification + password reset`
-- [ ] `feat(api): tenant_id isolation middleware + RLS`
+- [x] `feat(api): tenant_id isolation — business endpoints scoped to authed tenant` (#79; Postgres RLS still TODO as defense-in-depth)
 - [ ] `feat(api): rate limiting + CSRF protection for cookie auth`
 - [ ] `feat: billing (Razorpay/Stripe) + free-tier limits`
 - [ ] `feat: integrations (Shopify / WooCommerce / CSV scheduler)`
