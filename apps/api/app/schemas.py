@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import datetime as dt
+
 from pydantic import BaseModel
 
 
@@ -20,6 +22,21 @@ class UploadListItem(BaseModel):
     row_count: int
     series_count: int
     status: str
+
+
+class ForecastItem(BaseModel):
+    store_id: str
+    sku_id: str
+    model: str
+    horizon_date: dt.date
+    predicted_units: float
+
+
+class ForecastRunSummary(BaseModel):
+    tenant_id: str
+    horizon: int
+    series_forecast: int
+    forecasts_created: int
 
 
 class HealthResponse(BaseModel):
