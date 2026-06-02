@@ -8,6 +8,7 @@ and periodic-review order-up-to level. Pure formulas, unit-tested, no IO.
         safety_stock, reorder_point, economic_order_quantity,
         days_of_cover, order_up_to_level, service_level_z,
         ReorderSuggestion, build_reorder_suggestion, suggest_reorder,
+        SimulationResult, simulate_policy,
     )
 """
 
@@ -21,6 +22,10 @@ from vyaparsense_ml.replenishment.inventory import (
     safety_stock,
     service_level_z,
 )
+from vyaparsense_ml.replenishment.simulation import (
+    SimulationResult,
+    simulate_policy,
+)
 from vyaparsense_ml.replenishment.suggestions import (
     ReorderSuggestion,
     build_reorder_suggestion,
@@ -29,6 +34,7 @@ from vyaparsense_ml.replenishment.suggestions import (
 
 __all__ = [
     "ReorderSuggestion",
+    "SimulationResult",
     "build_reorder_suggestion",
     "days_of_cover",
     "economic_order_quantity",
@@ -36,5 +42,6 @@ __all__ = [
     "reorder_point",
     "safety_stock",
     "service_level_z",
+    "simulate_policy",
     "suggest_reorder",
 ]
