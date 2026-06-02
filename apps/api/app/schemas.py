@@ -90,6 +90,14 @@ class AuthResponse(BaseModel):
     email: str
 
 
+class UserResponse(BaseModel):
+    """The current authenticated user (`GET /auth/me`)."""
+
+    user_id: int
+    tenant_id: str
+    email: str
+
+
 class HealthResponse(BaseModel):
     status: str
     version: str
