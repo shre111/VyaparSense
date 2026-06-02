@@ -54,7 +54,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(web): scaffold Next.js app + Tailwind + shadcn/ui` (#61)
 - [x] `feat(web): CSV upload + job-status UX` (#63; sync upload — job-status UX follows the async worker)
 - [x] `feat(web): per-SKU forecast chart` (#65; point line — confidence band follows a quantile read endpoint)
-- [ ] `feat(web): reorder suggestions table`
+- [x] `feat(web): reorder suggestions table` (#67)
 - [ ] `feat(web): accuracy-over-time hero chart (rolling WAPE)`
 
 ## Phase 7 — Multi-tenant SaaS (custom auth)
