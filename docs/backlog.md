@@ -39,7 +39,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(ml): model card generation per training run` (#47)
 
 ## Phase 5 — Replenishment
-- [ ] `feat(ml): safety stock + reorder point + EOQ + days-of-cover`
+- [x] `feat(ml): safety stock + reorder point + EOQ + days-of-cover` (#49)
 - [ ] `feat(ml): service-level targets → reorder suggestions`
 - [ ] `feat(ml): simulated stockout / dead-stock KPIs`
 
