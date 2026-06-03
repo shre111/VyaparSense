@@ -22,6 +22,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from app import repository
 from app.accuracy import accuracy_over_time
+from app.config import get_settings
 from app.deps import CurrentTenant, SessionDep, SessionFactoryDep
 from app.forecasting import generate_forecasts
 from app.jobs import run_forecast_job
@@ -32,6 +33,7 @@ from app.schemas import (
     ForecastJobStatus,
     ForecastRunSummary,
 )
+from app.task_queue import enqueue_forecast_job
 
 router = APIRouter(tags=["forecasts"])
 
@@ -89,9 +91,16 @@ def create_forecast_job(
 
     The work runs in the background; poll ``GET /forecast-jobs/{id}`` until the
     status is ``completed`` (then read ``GET /forecasts``) or ``failed``.
+
+    Transport is chosen by the ``forecast_queue`` setting (ADR-011): ``redis``
+    hands the job to an RQ worker; ``inline`` (default) runs it in-process via
+    ``BackgroundTasks`` so dev/CI need no Redis.
     """
     job = repository.create_forecast_job(session, tenant_id=tenant_id, horizon=horizon, as_of=as_of)
-    background_tasks.add_task(run_forecast_job, session_factory, job.id)
+    if get_settings().forecast_queue == "redis":
+        enqueue_forecast_job(job.id)
+    else:
+        background_tasks.add_task(run_forecast_job, session_factory, job.id)
     return _job_status(job)
 
 

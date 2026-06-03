@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     api_env: str = "development"
 
+    # Async forecast jobs (ADR-007/011). "inline" runs them in-process via
+    # BackgroundTasks (dev/CI, no Redis); "redis" enqueues to an RQ worker.
+    forecast_queue: str = "inline"
+
     # --- Auth (ADR-006). Override auth_secret in production via env. ---
     auth_secret: str = "change-me-in-production"
     auth_jwt_algorithm: str = "HS256"

@@ -67,3 +67,9 @@ Architecture Decision Records. Each entry: context → decision → consequences
 **Context:** Two segments (India kirana vs. global D2C/SMB) have very different willingness-to-pay.
 **Decision (leaning):** Freemium + tiered SaaS. Free: 1 store, N SKUs, weekly forecasts. Paid: more SKUs/stores, daily forecasts, reorder automation, integrations. India entry pricing low (₹-friendly); global SMB priced in USD against Zoho/inFlow ($29–$299/mo band). See [plan.md](plan.md) business section.
 **Consequences:** Land-and-expand; the free tier *is* the data moat (more series → better cold-start).
+
+## ADR-011 — Forecast-job queue: RQ, with an inline fallback
+**Status:** Accepted
+**Context:** ADR-007 makes forecasting an async job and lists "RQ/Celery or Arq" as the runner. The backend is fully synchronous (sync SQLAlchemy sessions, sync FastAPI handlers); enqueuing must work from those sync routes.
+**Decision:** Use **RQ** (Redis Queue). It enqueues with a plain sync call (`queue.enqueue(...)`), matching the sync codebase — no event loop, unlike Arq; far lighter than Celery. A `forecast_queue` setting selects the transport: `redis` (RQ → a `rq worker` process) for deployments, or `inline` (FastAPI `BackgroundTasks`, the default) for local dev and CI so neither needs Redis. The job runner (`app/jobs.py`) is transport-agnostic; both paths call it.
+**Consequences:** Clean sync integration and a no-Redis dev/test path. Trade-off: RQ workers fork, so the worker process runs on Linux (the deploy target), not native Windows — local dev uses the inline path. Revisit Arq/Celery only if the app goes async or needs scheduling/fan-out RQ lacks.
