@@ -26,3 +26,14 @@ def get_session() -> Iterator[Session]:
         yield session
     finally:
         session.close()
+
+
+def get_session_factory() -> sessionmaker[Session]:
+    """FastAPI dependency returning the session factory itself.
+
+    Background work (async forecast jobs, ADR-007) runs after the request's
+    session is closed, so it needs to open its own session. Exposing the factory
+    as a dependency lets tests override it the same way they override
+    :func:`get_session`.
+    """
+    return SessionLocal

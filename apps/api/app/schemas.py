@@ -39,6 +39,20 @@ class ForecastRunSummary(BaseModel):
     forecasts_created: int
 
 
+class ForecastJobStatus(BaseModel):
+    """Status of an async forecast job (ADR-007) — the poll response."""
+
+    job_id: int
+    status: str  # queued | running | completed | failed
+    horizon: int
+    as_of: dt.date | None
+    series_forecast: int
+    forecasts_created: int
+    error: str | None
+    created_at: dt.datetime
+    updated_at: dt.datetime
+
+
 class AccuracyPointItem(BaseModel):
     period: str
     n: int
