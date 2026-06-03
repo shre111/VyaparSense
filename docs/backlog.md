@@ -57,6 +57,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(web): per-SKU forecast chart` (#65; point line — confidence band follows a quantile read endpoint)
 - [x] `feat(web): reorder suggestions table` (#67)
 - [x] `feat(web): accuracy-over-time hero chart (rolling WAPE)` (#71; + KPI cards, backfill via as-of)
+- [x] `feat(web): auth flow — login/signup, authenticated API client, route guard` (#81)
 
 ## Phase 7 — Multi-tenant SaaS (custom auth)
 > ⚠️ Security-sensitive — needs a full security review before launch (CLAUDE.md, ADR-006).
