@@ -49,7 +49,11 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(api): accuracy-over-time endpoint (rolling WAPE: past forecasts vs actuals)` (#57)
 - [x] `feat(api): reorder-suggestion + simulation-KPI endpoints` (#59)
 - [x] `feat(api): as-of forecast cutoff + accuracy bucketed by horizon week (enables the hero chart)` (#69)
-- [ ] `feat(api): async worker for heavy models (classical / global LightGBM) (ADR-007)`
+- Async forecast jobs (ADR-007), sliced:
+  - [x] `feat(api): async forecast jobs with status polling` (#83; job model + `POST /forecast-jobs` + `GET /forecast-jobs/{id}`, interim `BackgroundTasks` transport)
+  - [ ] `feat(api): redis-backed worker (arq/RQ) for forecast jobs` (swap BackgroundTasks → real queue + worker process)
+  - [ ] `feat(api): run full model ladder in jobs (classical / global LightGBM)`
+  - [ ] `feat(web): forecast job-status UX (enqueue + poll)`
 
 ## Phase 6 — Frontend ✅
 - [x] `feat(web): scaffold Next.js app + Tailwind + shadcn/ui` (#61)
