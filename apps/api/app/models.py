@@ -107,6 +107,33 @@ class SalesRecordRow(Base):
     upload: Mapped[Upload] = relationship(back_populates="sales")
 
 
+class ForecastJob(Base):
+    """An async forecast-generation job (ADR-007).
+
+    Forecasting/backtesting over many SKUs is too slow for an HTTP request, so a
+    ``POST`` enqueues a job and the client polls this row for status. ``status``
+    moves ``queued`` → ``running`` → ``completed`` | ``failed``; on success the
+    counts mirror the produced forecasts, on failure ``error`` carries the reason.
+    """
+
+    __tablename__ = "forecast_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="queued", index=True)
+    horizon: Mapped[int] = mapped_column(Integer, default=7)
+    as_of: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+    series_forecast: Mapped[int] = mapped_column(Integer, default=0)
+    forecasts_created: Mapped[int] = mapped_column(Integer, default=0)
+    error: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class Forecast(Base):
     """Append-only forecast records (ADR-008). Never updated."""
 

@@ -9,7 +9,15 @@ from sqlalchemy.orm import Session
 from vyaparsense_ml.schema import SalesRecord
 
 from app.forecasting import ForecastRow
-from app.models import Forecast, RefreshToken, SalesRecordRow, Tenant, Upload, User
+from app.models import (
+    Forecast,
+    ForecastJob,
+    RefreshToken,
+    SalesRecordRow,
+    Tenant,
+    Upload,
+    User,
+)
 
 SeriesKey = tuple[str, str]
 
@@ -221,3 +229,54 @@ def forecast_actual_pairs(session: Session, tenant_id: str) -> list[tuple[dt.dat
         (horizon_date, float(predicted), float(actual))
         for horizon_date, predicted, actual in session.execute(stmt)
     ]
+
+
+# --- forecast jobs (ADR-007) ------------------------------------------------
+
+
+def create_forecast_job(
+    session: Session,
+    *,
+    tenant_id: str,
+    horizon: int,
+    as_of: dt.date | None = None,
+) -> ForecastJob:
+    """Insert a queued forecast job for a tenant and return it (id populated)."""
+    job = ForecastJob(tenant_id=tenant_id, status="queued", horizon=horizon, as_of=as_of)
+    session.add(job)
+    session.commit()
+    session.refresh(job)
+    return job
+
+
+def get_forecast_job(session: Session, tenant_id: str, job_id: int) -> ForecastJob | None:
+    """Fetch one job, scoped to the tenant (returns ``None`` for another tenant's)."""
+    job = session.get(ForecastJob, job_id)
+    if job is None or job.tenant_id != tenant_id:
+        return None
+    return job
+
+
+def get_forecast_job_by_id(session: Session, job_id: int) -> ForecastJob | None:
+    """Fetch a job by id without a tenant check — for the trusted job runner only."""
+    return session.get(ForecastJob, job_id)
+
+
+def mark_forecast_job_running(session: Session, job: ForecastJob) -> None:
+    job.status = "running"
+    session.commit()
+
+
+def complete_forecast_job(
+    session: Session, job: ForecastJob, *, series_forecast: int, forecasts_created: int
+) -> None:
+    job.status = "completed"
+    job.series_forecast = series_forecast
+    job.forecasts_created = forecasts_created
+    session.commit()
+
+
+def fail_forecast_job(session: Session, job: ForecastJob, error: str) -> None:
+    job.status = "failed"
+    job.error = error[:1024]
+    session.commit()

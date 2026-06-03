@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 import pytest
-from app.db import Base, get_session
+from app.db import Base, get_session, get_session_factory
 from app.main import app
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -40,6 +40,9 @@ def client(session_factory: sessionmaker[Session]) -> Iterator[TestClient]:
             s.close()
 
     app.dependency_overrides[get_session] = _override
+    # Background forecast jobs (ADR-007) open their own session from the factory;
+    # point it at the same in-memory DB so they share this test's data.
+    app.dependency_overrides[get_session_factory] = lambda: session_factory
     yield TestClient(app)
     app.dependency_overrides.clear()
 

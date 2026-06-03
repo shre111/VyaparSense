@@ -12,13 +12,16 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app import repository, security
-from app.db import get_session
+from app.db import get_session, get_session_factory
 from app.models import User
 
 SessionDep = Annotated[Session, Depends(get_session)]
+
+#: The session factory, for scheduling background work that outlives the request.
+SessionFactoryDep = Annotated[sessionmaker[Session], Depends(get_session_factory)]
 
 _bearer = HTTPBearer(auto_error=False)
 
