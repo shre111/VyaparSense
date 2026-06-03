@@ -51,7 +51,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(api): as-of forecast cutoff + accuracy bucketed by horizon week (enables the hero chart)` (#69)
 - Async forecast jobs (ADR-007), sliced:
   - [x] `feat(api): async forecast jobs with status polling` (#83; job model + `POST /forecast-jobs` + `GET /forecast-jobs/{id}`, interim `BackgroundTasks` transport)
-  - [ ] `feat(api): redis-backed worker (arq/RQ) for forecast jobs` (swap BackgroundTasks → real queue + worker process)
+  - [x] `feat(api): redis-backed worker (RQ) for forecast jobs` (#85; `forecast_queue` setting → RQ worker or inline `BackgroundTasks`; RQ chosen per ADR-011)
   - [ ] `feat(api): run full model ladder in jobs (classical / global LightGBM)`
   - [ ] `feat(web): forecast job-status UX (enqueue + poll)`
 
