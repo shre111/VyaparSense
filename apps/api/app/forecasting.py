@@ -5,10 +5,13 @@ forecasting library. For each ``(store, sku)`` series it picks the best baseline
 by rolling backtest (:func:`vyaparsense_ml.forecasting.select_per_series`) and
 produces an ``h``-step forward point forecast with that winner.
 
-Scope (this PR): the **baseline** models only (naive / moving-average /
-seasonal-naive). They are pure-stdlib and fast enough to run in the request
-path. The classical / intermittent / global-LightGBM models are heavier and
-belong in the async worker (ADR-007); wiring those in is a later change.
+Two candidate sets share this one path:
+
+* ``DEFAULT_MODELS`` — the pure-stdlib **baselines**, fast enough for the
+  synchronous ``POST /forecasts`` request path.
+* ``FULL_LADDER_MODELS`` — baselines + classical + intermittent (rungs 1-3).
+  Heavier to backtest (statsforecast refits per fold), so it runs in the async
+  job path (ADR-007). The global LightGBM (rung 4) is a later change.
 """
 
 from __future__ import annotations
@@ -17,6 +20,8 @@ import datetime as dt
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from vyaparsense_ml.forecasting.classical import AutoARIMA, AutoETS
+from vyaparsense_ml.forecasting.intermittent import TSB, Croston, CrostonSBA
 from vyaparsense_ml.forecasting.models import Baseline, MovingAverage, Naive, SeasonalNaive
 from vyaparsense_ml.forecasting.selection import select_per_series
 
@@ -27,6 +32,18 @@ DEFAULT_MODELS: list[Baseline] = [
     Naive(),
     MovingAverage(window=7),
     SeasonalNaive(season_length=7),
+]
+
+#: The full per-series ladder (CLAUDE.md §4 rungs 1-3): baselines + classical
+#: (ETS/ARIMA) + intermittent (Croston/SBA/TSB). Each series still picks its own
+#: winner by backtest — a baseline beating the fancier models is a valid result.
+FULL_LADDER_MODELS: list[Baseline] = [
+    *DEFAULT_MODELS,
+    AutoETS(season_length=7),
+    AutoARIMA(season_length=7),
+    Croston(),
+    CrostonSBA(),
+    TSB(),
 ]
 
 # Backtest defaults: weekly origins after a four-week warmup, season length 7.

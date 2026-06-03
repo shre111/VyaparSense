@@ -11,6 +11,7 @@ import datetime as dt
 from typing import Any
 
 import pytest
+from app.forecasting import FULL_LADDER_MODELS
 from fastapi.testclient import TestClient
 
 _HEADER = "date,store_id,sku_id,units_sold,price,promo_flag\n"
@@ -27,6 +28,17 @@ def _history_csv(days: int = 60, store: str = "S1", sku: str = "K1") -> str:
         f"{(start + dt.timedelta(days=i)).isoformat()},{store},{sku},{weekly[i % 7]},10.0,0\n"
         for i in range(days)
     ]
+    return _HEADER + "".join(rows)
+
+
+def _intermittent_csv(days: int = 60, store: str = "S1", sku: str = "LUMPY") -> str:
+    """A sparse/lumpy series: demand only every 10th day — Croston/TSB territory."""
+    start = dt.date(2024, 1, 1)
+    rows = []
+    for i in range(days):
+        d = (start + dt.timedelta(days=i)).isoformat()
+        units = 15 if i % 10 == 0 else 0
+        rows.append(f"{d},{store},{sku},{units},10.0,0\n")
     return _HEADER + "".join(rows)
 
 
@@ -104,3 +116,30 @@ def test_job_tenant_isolation(auth_client: TestClient, client: TestClient) -> No
 def test_job_requires_auth(client: TestClient) -> None:
     assert client.post("/forecast-jobs").status_code == 401
     assert client.get("/forecast-jobs/1").status_code == 401
+
+
+def test_full_ladder_includes_classical_and_intermittent() -> None:
+    # the job path runs more than baselines (CLAUDE.md §4 rungs 1-3)
+    names = {m.name for m in FULL_LADDER_MODELS}
+    assert {"naive", "moving_average_7", "seasonal_naive_7"} <= names  # baselines kept
+    assert {"auto_ets_7", "auto_arima_7"} <= names  # classical
+    assert {"croston", "croston_sba", "tsb"} <= names  # intermittent
+
+
+def test_job_runs_full_ladder_over_mixed_series(auth_client: TestClient) -> None:
+    # a smooth and a lumpy series: exercises classical + intermittent models in
+    # the runner without crashing, and each series picks a ladder model.
+    csv = _history_csv(days=60, sku="SMOOTH") + _intermittent_csv(days=60, sku="LUMPY").replace(
+        _HEADER, ""
+    )
+    auth_client.post("/uploads", files=_csv(csv))
+    job_id = auth_client.post("/forecast-jobs?horizon=7").json()["job_id"]
+
+    done = auth_client.get(f"/forecast-jobs/{job_id}").json()
+    assert done["status"] == "completed", done
+    assert done["series_forecast"] == 2
+    assert done["forecasts_created"] == 14  # 2 series x 7 days
+
+    ladder_names = {m.name for m in FULL_LADDER_MODELS}
+    models_used = {f["model"] for f in auth_client.get("/forecasts").json()}
+    assert models_used <= ladder_names
