@@ -18,7 +18,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session, sessionmaker
 
 from app import repository
-from app.forecasting import generate_forecasts
+from app.forecasting import FULL_LADDER_MODELS, generate_forecasts
 
 
 def run_forecast_job(session_factory: sessionmaker[Session], job_id: int) -> None:
@@ -36,7 +36,11 @@ def run_forecast_job(session_factory: sessionmaker[Session], job_id: int) -> Non
         repository.mark_forecast_job_running(session, job)
         try:
             series = repository.load_series(session, job.tenant_id)
-            rows = generate_forecasts(series, horizon=job.horizon, as_of=job.as_of)
+            # Jobs run the full ladder (baselines + classical + intermittent);
+            # the synchronous endpoint stays on the fast baselines.
+            rows = generate_forecasts(
+                series, horizon=job.horizon, as_of=job.as_of, models=FULL_LADDER_MODELS
+            )
             created = repository.store_forecasts(session, job.tenant_id, rows)
             series_forecast = len({(r.store_id, r.sku_id) for r in rows})
             repository.complete_forecast_job(
