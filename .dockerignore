@@ -1,0 +1,15 @@
+# Keep the build context small — the API image only needs packages/ml + apps/api.
+.git
+**/.venv
+**/node_modules
+**/.next
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/*.egg-info
+**/.env
+apps/web
+data
+docs
