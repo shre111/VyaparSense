@@ -92,6 +92,5 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [ ] `docs: onboarding guide + model-card index`
 - Deployment readiness (get it live):
   - [x] `feat(api): production CORS for the SPA (credentialed, explicit origins)` (#106)
-  - [ ] `chore: Dockerfiles for api + RQ worker`
-  - [ ] `chore: deploy config (render.yaml / fly.toml) + deploy runbook`
+  - [x] `chore: Dockerfile for api + RQ worker + deploy runbook` (#108; one image, build+run verified; `docs/deploy.md` incl. render.yaml example)
   - [ ] `chore: provision + deploy` (Vercel web + Render/Fly api+worker + Neon db; needs accounts/secrets/domain)
