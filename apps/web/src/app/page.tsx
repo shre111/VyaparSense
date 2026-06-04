@@ -115,11 +115,11 @@ export default function Home() {
       <section className="mx-auto mt-20 max-w-4xl">
         <div className="flex flex-col items-center gap-3 rounded-xl border bg-muted/40 p-8 text-center">
           <TrendingDown className="h-8 w-8 text-primary" aria-hidden />
-          <p className="text-3xl font-bold">&minus;62% lost sales</p>
+          <p className="text-3xl font-bold">91% &rarr; 97.5% fill rate</p>
           <p className="max-w-xl text-sm text-muted-foreground">
-            In a day-by-day policy simulation on sample data, a forecast-driven
-            reorder policy cut lost sales by 62% versus a naive one — fewer
-            stockouts, without piling on dead stock.
+            In a day-by-day policy simulation on sample data (95% service level),
+            forecast-driven reordering lifted fill rate from 91% to 97.5% — about
+            73% fewer lost units, without piling on dead stock.
           </p>
         </div>
       </section>
