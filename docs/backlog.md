@@ -72,7 +72,8 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(api): refresh-token rotation + reuse detection` (#77; + `GET /auth/me` + access-token dependency)
 - [ ] `feat(api): email verification + password reset`
 - [x] `feat(api): tenant_id isolation — business endpoints scoped to authed tenant` (#79; Postgres RLS still TODO as defense-in-depth)
-- [ ] `feat(api): rate limiting + CSRF protection for cookie auth`
+- [x] `feat(api): rate limiting for login/signup` (#93; per-IP fixed-window, in-memory; 429 + Retry-After)
+- [ ] `feat(api): CSRF protection for the refresh cookie`
 - [ ] `feat: billing (Razorpay/Stripe) + free-tier limits`
 - [ ] `feat: integrations (Shopify / WooCommerce / CSV scheduler)`
 - [ ] `feat: reorder alerts (email / WhatsApp)`
