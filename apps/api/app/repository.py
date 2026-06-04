@@ -165,6 +165,37 @@ def load_series(session: Session, tenant_id: str) -> dict[SeriesKey, list[tuple[
     return series
 
 
+def load_records(session: Session, tenant_id: str) -> list[SalesRecord]:
+    """Load a tenant's sales as ``SalesRecord``s (with price/promo), date-sorted.
+
+    The global model (and any feature-based model) needs price/promo, which the
+    per-series ``(date, units)`` view from :func:`load_series` drops.
+    """
+    stmt = (
+        select(
+            SalesRecordRow.date,
+            SalesRecordRow.store_id,
+            SalesRecordRow.sku_id,
+            SalesRecordRow.units_sold,
+            SalesRecordRow.price,
+            SalesRecordRow.promo_flag,
+        )
+        .where(SalesRecordRow.tenant_id == tenant_id)
+        .order_by(SalesRecordRow.store_id, SalesRecordRow.sku_id, SalesRecordRow.date)
+    )
+    return [
+        SalesRecord(
+            date=date,
+            store_id=store_id,
+            sku_id=sku_id,
+            units_sold=units,
+            price=price,
+            promo_flag=promo,
+        )
+        for date, store_id, sku_id, units, price, promo in session.execute(stmt)
+    ]
+
+
 def store_forecasts(session: Session, tenant_id: str, rows: list[ForecastRow]) -> int:
     """Append forecast rows for a tenant (ADR-008: insert-only). Returns count."""
     session.add_all(
