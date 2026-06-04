@@ -84,6 +84,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(ml): transfer-learning cold-start (borrow weekly shape from donors)` (#97; honest backtest: loses to flat-mean on the intermittent sample, so backtest-gated — global model #89 is the transfer that wins here)
 
 ## Phase 9 — Polish & launch
-- [ ] `feat(web): landing page + public "MAPE dropping" demo`
+- [x] `feat(web): marketing landing page (getting-smarter story + depth ladder)` (#99; illustrative WAPE-dropping chart)
+- [ ] `feat(web): public live demo (seeded demo tenant, no login)`
 - [ ] `chore: observability (logging, error tracking, metrics)`
 - [ ] `docs: onboarding + model cards + case study`
