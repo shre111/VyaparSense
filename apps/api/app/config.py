@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     api_env: str = "development"
     log_level: str = "INFO"
 
+    # Browser origins allowed to call the API (comma-separated). The SPA sends
+    # cookies, so this must be explicit origins — a wildcard can't be used with
+    # credentialed CORS. Set the deployed web origin(s) in production.
+    cors_allow_origins: str = "http://localhost:3000"
+
     # Async forecast jobs (ADR-007/011). "inline" runs them in-process via
     # BackgroundTasks (dev/CI, no Redis); "redis" enqueues to an RQ worker.
     forecast_queue: str = "inline"
@@ -25,6 +30,11 @@ class Settings(BaseSettings):
     refresh_token_ttl_days: int = 30
     #: Per-IP cap on credential attempts (login + signup) per 60s window.
     auth_rate_limit_per_minute: int = 10
+
+    @property
+    def cors_allow_origins_list(self) -> list[str]:
+        """``cors_allow_origins`` split into a clean list of origins."""
+        return [origin.strip() for origin in self.cors_allow_origins.split(",") if origin.strip()]
 
 
 def get_settings() -> Settings:
