@@ -79,7 +79,8 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [ ] `feat: reorder alerts (email / WhatsApp)`
 
 ## Phase 8 — Moat
-- [ ] `feat(ml): hierarchical reconciliation (store→category→SKU)`
+- [x] `feat(ml): hierarchical reconciliation (total→store→SKU; bottom-up + OLS)` (#95; coherent forecasts. `store→category→SKU` needs category metadata; MinT is a follow-up)
+- [ ] `feat(api): reconcile job forecasts across the hierarchy` (wire reconciliation into the forecast job)
 - [ ] `feat(ml): transfer-learning cold-start for new store/SKU`
 
 ## Phase 9 — Polish & launch
