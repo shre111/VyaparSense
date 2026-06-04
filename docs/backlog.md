@@ -90,3 +90,8 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [ ] `chore: observability — error tracking (Sentry) + metrics (Prometheus)`
 - [x] `docs: case study (honest results on sample data)` (#103; landing KPI reconciled #104)
 - [ ] `docs: onboarding guide + model-card index`
+- Deployment readiness (get it live):
+  - [x] `feat(api): production CORS for the SPA (credentialed, explicit origins)` (#106)
+  - [ ] `chore: Dockerfiles for api + RQ worker`
+  - [ ] `chore: deploy config (render.yaml / fly.toml) + deploy runbook`
+  - [ ] `chore: provision + deploy` (Vercel web + Render/Fly api+worker + Neon db; needs accounts/secrets/domain)
