@@ -5,9 +5,8 @@ A forecast job loads a tenant's stored sales, generates forecasts, persists them
 client can poll for status. This is the *task body*; the transport that calls it
 is pluggable:
 
-* now — FastAPI ``BackgroundTasks`` (runs in-process after the response). Keeps
-  the async API contract without a Redis dependency yet.
-* next — a Redis-backed worker process (arq/RQ) calls this same function.
+* ``inline`` — FastAPI ``BackgroundTasks`` (runs in-process after the response).
+* ``redis`` — a Redis-backed RQ worker process calls this same function (ADR-011).
 
 Because the task outlives the request, it opens its own session from the passed
 factory rather than reusing the request's (already-closed) session.
@@ -18,7 +17,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session, sessionmaker
 
 from app import repository
-from app.forecasting import FULL_LADDER_MODELS, generate_forecasts
+from app.forecasting import generate_forecasts_full
 
 
 def run_forecast_job(session_factory: sessionmaker[Session], job_id: int) -> None:
@@ -35,12 +34,10 @@ def run_forecast_job(session_factory: sessionmaker[Session], job_id: int) -> Non
             return
         repository.mark_forecast_job_running(session, job)
         try:
-            series = repository.load_series(session, job.tenant_id)
-            # Jobs run the full ladder (baselines + classical + intermittent);
-            # the synchronous endpoint stays on the fast baselines.
-            rows = generate_forecasts(
-                series, horizon=job.horizon, as_of=job.as_of, models=FULL_LADDER_MODELS
-            )
+            records = repository.load_records(session, job.tenant_id)
+            # Jobs run the full ladder AND a global LightGBM, keeping whichever
+            # wins the backtest; the synchronous endpoint stays on the baselines.
+            rows, _decision = generate_forecasts_full(records, horizon=job.horizon, as_of=job.as_of)
             created = repository.store_forecasts(session, job.tenant_id, rows)
             series_forecast = len({(r.store_id, r.sku_id) for r in rows})
             repository.complete_forecast_job(

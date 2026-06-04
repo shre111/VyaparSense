@@ -86,7 +86,7 @@ def test_job_records_failure(auth_client: TestClient, monkeypatch: pytest.Monkey
         raise RuntimeError("forecasting blew up")
 
     # the background task runs during the POST call, so patching here takes effect
-    monkeypatch.setattr("app.jobs.generate_forecasts", boom)
+    monkeypatch.setattr("app.jobs.generate_forecasts_full", boom)
     auth_client.post("/uploads", files=_csv(_history_csv()))
     job_id = auth_client.post("/forecast-jobs").json()["job_id"]
     done = auth_client.get(f"/forecast-jobs/{job_id}").json()
@@ -127,8 +127,8 @@ def test_full_ladder_includes_classical_and_intermittent() -> None:
 
 
 def test_job_runs_full_ladder_over_mixed_series(auth_client: TestClient) -> None:
-    # a smooth and a lumpy series: exercises classical + intermittent models in
-    # the runner without crashing, and each series picks a ladder model.
+    # a smooth and a lumpy series: exercises classical + intermittent models AND
+    # the global LightGBM in the runner without crashing; whichever wins applies.
     csv = _history_csv(days=60, sku="SMOOTH") + _intermittent_csv(days=60, sku="LUMPY").replace(
         _HEADER, ""
     )
@@ -140,6 +140,7 @@ def test_job_runs_full_ladder_over_mixed_series(auth_client: TestClient) -> None
     assert done["series_forecast"] == 2
     assert done["forecasts_created"] == 14  # 2 series x 7 days
 
-    ladder_names = {m.name for m in FULL_LADDER_MODELS}
+    # winner applies to all series: either the per-series champions or the global model
+    allowed = {m.name for m in FULL_LADDER_MODELS} | {"global_lightgbm"}
     models_used = {f["model"] for f in auth_client.get("/forecasts").json()}
-    assert models_used <= ladder_names
+    assert models_used <= allowed
