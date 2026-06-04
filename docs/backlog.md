@@ -86,5 +86,6 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 ## Phase 9 — Polish & launch
 - [x] `feat(web): marketing landing page (getting-smarter story + depth ladder)` (#99; illustrative WAPE-dropping chart)
 - [ ] `feat(web): public live demo (seeded demo tenant, no login)`
-- [ ] `chore: observability (logging, error tracking, metrics)`
+- [x] `feat(api): structured request logging + request ids` (#101; JSON logs, X-Request-ID)
+- [ ] `chore: observability — error tracking (Sentry) + metrics (Prometheus)`
 - [ ] `docs: onboarding + model cards + case study`
