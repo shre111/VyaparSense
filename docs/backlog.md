@@ -88,4 +88,5 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [ ] `feat(web): public live demo (seeded demo tenant, no login)`
 - [x] `feat(api): structured request logging + request ids` (#101; JSON logs, X-Request-ID)
 - [ ] `chore: observability — error tracking (Sentry) + metrics (Prometheus)`
-- [ ] `docs: onboarding + model cards + case study`
+- [x] `docs: case study (honest results on sample data)` (#103; landing KPI reconciled #104)
+- [ ] `docs: onboarding guide + model-card index`
