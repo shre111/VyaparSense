@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://vyaparsense:vyaparsense@localhost:5432/vyaparsense"
     redis_url: str = "redis://localhost:6379/0"
     api_env: str = "development"
+    log_level: str = "INFO"
 
     # Async forecast jobs (ADR-007/011). "inline" runs them in-process via
     # BackgroundTasks (dev/CI, no Redis); "redis" enqueues to an RQ worker.
