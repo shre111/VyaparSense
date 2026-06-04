@@ -81,7 +81,7 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 ## Phase 8 — Moat
 - [x] `feat(ml): hierarchical reconciliation (total→store→SKU; bottom-up + OLS)` (#95; coherent forecasts. `store→category→SKU` needs category metadata; MinT is a follow-up)
 - [ ] `feat(api): reconcile job forecasts across the hierarchy` (wire reconciliation into the forecast job)
-- [ ] `feat(ml): transfer-learning cold-start for new store/SKU`
+- [x] `feat(ml): transfer-learning cold-start (borrow weekly shape from donors)` (#97; honest backtest: loses to flat-mean on the intermittent sample, so backtest-gated — global model #89 is the transfer that wins here)
 
 ## Phase 9 — Polish & launch
 - [ ] `feat(web): landing page + public "MAPE dropping" demo`
