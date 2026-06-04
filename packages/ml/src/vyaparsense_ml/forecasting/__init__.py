@@ -20,6 +20,8 @@ Public API::
         build_features, feature_columns,            # global-model features
         GlobalLightGBM,                             # global ML model
         global_backtest, GlobalBacktestResult,
+        build_hierarchy, Hierarchy, reconcile,      # hierarchical reconciliation
+        aggregate_history, coherence_error,
         ModelCard, data_hash, write_card,           # model cards (reproducibility)
         card_from_global_backtest,
     )
@@ -47,6 +49,13 @@ from vyaparsense_ml.forecasting.global_backtest import (
 )
 from vyaparsense_ml.forecasting.global_model import (
     GlobalLightGBM,
+)
+from vyaparsense_ml.forecasting.hierarchy import (
+    Hierarchy,
+    aggregate_history,
+    build_hierarchy,
+    coherence_error,
+    reconcile,
 )
 from vyaparsense_ml.forecasting.intermittent import (
     TSB,
@@ -106,6 +115,7 @@ __all__ = [
     "ForecastMetrics",
     "GlobalBacktestResult",
     "GlobalLightGBM",
+    "Hierarchy",
     "ModelCard",
     "MovingAverage",
     "Naive",
@@ -113,10 +123,13 @@ __all__ = [
     "QuantileForecaster",
     "SeasonalNaive",
     "SelectionResult",
+    "aggregate_history",
     "backtest",
     "bias",
     "build_features",
+    "build_hierarchy",
     "card_from_global_backtest",
+    "coherence_error",
     "compute_metrics",
     "coverage",
     "data_hash",
@@ -128,6 +141,7 @@ __all__ = [
     "mean_pinball_loss",
     "pinball_loss",
     "quantile_backtest",
+    "reconcile",
     "rmse",
     "select_model",
     "select_per_series",
