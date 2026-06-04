@@ -53,6 +53,21 @@ export interface ForecastItem {
   predicted_units: number;
 }
 
+export type ForecastJobState = "queued" | "running" | "completed" | "failed";
+
+/** Status of an async forecast job (ADR-007), polled until terminal. */
+export interface ForecastJobStatus {
+  job_id: number;
+  status: ForecastJobState;
+  horizon: number;
+  as_of: string | null;
+  series_forecast: number;
+  forecasts_created: number;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ReorderItem {
   store_id: string;
   sku_id: string;
@@ -225,6 +240,44 @@ export async function getForecasts(filter?: {
   if (filter?.skuId) params.set("sku_id", filter.skuId);
   const qs = params.toString();
   return authedJson<ForecastItem[]>(`/forecasts${qs ? `?${qs}` : ""}`);
+}
+
+/**
+ * Enqueue an async forecast job (ADR-007): runs the full model ladder (classical
+ * + global LightGBM) off the request path. Returns the `queued` job to poll.
+ */
+export async function createForecastJob(horizon = 7, asOf?: string): Promise<ForecastJobStatus> {
+  const params = new URLSearchParams({ horizon: String(horizon) });
+  if (asOf) params.set("as_of", asOf);
+  return authedJson<ForecastJobStatus>(`/forecast-jobs?${params.toString()}`, { method: "POST" });
+}
+
+export async function getForecastJob(jobId: number): Promise<ForecastJobStatus> {
+  return authedJson<ForecastJobStatus>(`/forecast-jobs/${jobId}`);
+}
+
+const _TERMINAL: ReadonlySet<ForecastJobState> = new Set(["completed", "failed"]);
+
+/**
+ * Poll a forecast job until it reaches a terminal state (`completed`/`failed`),
+ * calling `onUpdate` with each status. Rejects on timeout.
+ */
+export async function pollForecastJob(
+  jobId: number,
+  opts: { intervalMs?: number; timeoutMs?: number; onUpdate?: (s: ForecastJobStatus) => void } = {},
+): Promise<ForecastJobStatus> {
+  const intervalMs = opts.intervalMs ?? 1000;
+  const timeoutMs = opts.timeoutMs ?? 120_000;
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const status = await getForecastJob(jobId);
+    opts.onUpdate?.(status);
+    if (_TERMINAL.has(status.status)) return status;
+    if (Date.now() >= deadline) {
+      throw new ApiError(408, "Timed out waiting for the forecast job to finish.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
 }
 
 export interface ReorderParams {

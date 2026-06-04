@@ -13,16 +13,18 @@ import {
 } from "recharts";
 import {
   ApiError,
+  createForecastJob,
   type ForecastItem,
-  generateForecasts,
+  type ForecastJobState,
   getForecasts,
+  pollForecastJob,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Status =
   | { kind: "idle" }
-  | { kind: "loading" }
+  | { kind: "running"; state: ForecastJobState }
   | { kind: "ready"; items: ForecastItem[] }
   | { kind: "error"; message: string };
 
@@ -30,16 +32,31 @@ function seriesKey(item: ForecastItem): string {
   return `${item.store_id} · ${item.sku_id}`;
 }
 
+const _RUN_LABEL: Record<ForecastJobState, string> = {
+  queued: "Queued…",
+  running: "Forecasting…",
+  completed: "Loading results…",
+  failed: "Failed",
+};
+
 export function ForecastExplorer() {
   const [status, setStatus] = React.useState<Status>({ kind: "idle" });
   const [selected, setSelected] = React.useState<string | null>(null);
 
   async function handleRun(event: React.FormEvent) {
     event.preventDefault();
-    setStatus({ kind: "loading" });
+    setStatus({ kind: "running", state: "queued" });
     setSelected(null);
     try {
-      await generateForecasts(7);
+      // Forecasts run as an async job (ADR-007): enqueue, poll, then read.
+      const job = await createForecastJob(7);
+      const done = await pollForecastJob(job.job_id, {
+        onUpdate: (s) => setStatus({ kind: "running", state: s.status }),
+      });
+      if (done.status === "failed") {
+        setStatus({ kind: "error", message: done.error ?? "The forecast job failed." });
+        return;
+      }
       const items = await getForecasts();
       setStatus({ kind: "ready", items });
       if (items.length > 0) setSelected(seriesKey(items[0]));
@@ -51,6 +68,9 @@ export function ForecastExplorer() {
       setStatus({ kind: "error", message });
     }
   }
+
+  const running = status.kind === "running";
+  const runLabel = status.kind === "running" ? _RUN_LABEL[status.state] : "Run forecast";
 
   const seriesKeys =
     status.kind === "ready"
@@ -73,14 +93,17 @@ export function ForecastExplorer() {
   return (
     <div className="flex flex-col gap-6">
       <form onSubmit={handleRun} className="flex items-end gap-3">
-        <Button type="submit" disabled={status.kind === "loading"}>
-          {status.kind === "loading" ? (
+        <Button type="submit" disabled={running}>
+          {running ? (
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
           ) : (
             <LineChartIcon className="h-4 w-4" aria-hidden />
           )}
-          {status.kind === "loading" ? "Forecasting…" : "Run forecast"}
+          {runLabel}
         </Button>
+        <p className="text-xs text-muted-foreground">
+          Runs the full model ladder as a background job.
+        </p>
       </form>
 
       {status.kind === "error" && (
