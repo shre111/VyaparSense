@@ -8,21 +8,23 @@ Refresh tokens rotate: each `/auth/refresh` revokes the presented token and
 issues a new one. Presenting an already-revoked refresh jti is treated as theft
 — every outstanding refresh token for that user is revoked (forced re-login).
 
-> ⚠️ Security-sensitive. CSRF protection for the cookie, rate limiting, and
-> `tenant_id` isolation middleware are follow-up PRs. Needs a full security
-> review before launch.
+Login/signup are rate-limited per IP (``app.ratelimit``) to blunt brute force.
+
+> ⚠️ Security-sensitive. CSRF protection for the refresh cookie and Postgres RLS
+> are still follow-up PRs. Needs a full security review before launch.
 """
 
 from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app import repository, security
 from app.config import get_settings
 from app.deps import CurrentUser, SessionDep
+from app.ratelimit import rate_limit_auth
 from app.schemas import AuthResponse, LoginRequest, SignupRequest, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -60,7 +62,12 @@ def _issue_tokens(
     )
 
 
-@router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/signup",
+    response_model=AuthResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit_auth)],
+)
 def signup(body: SignupRequest, session: SessionDep, response: Response) -> AuthResponse:
     """Register a new user under a tenant and return access + refresh tokens."""
     if "@" not in body.email:
@@ -76,7 +83,7 @@ def signup(body: SignupRequest, session: SessionDep, response: Response) -> Auth
     return _issue_tokens(response, session, user.id, user.tenant_id, user.email)
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post("/login", response_model=AuthResponse, dependencies=[Depends(rate_limit_auth)])
 def login(body: LoginRequest, session: SessionDep, response: Response) -> AuthResponse:
     """Verify credentials and return access + refresh tokens.
 

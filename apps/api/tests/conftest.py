@@ -30,6 +30,15 @@ def session_factory() -> Iterator[sessionmaker[Session]]:
     Base.metadata.drop_all(engine)
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limits() -> Iterator[None]:
+    # the auth rate limiter is per-process module state; start each test fresh
+    from app.ratelimit import reset_rate_limits
+
+    reset_rate_limits()
+    yield
+
+
 @pytest.fixture
 def client(session_factory: sessionmaker[Session]) -> Iterator[TestClient]:
     def _override() -> Iterator[Session]:

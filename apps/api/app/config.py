@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     #: Short-lived access tokens; longer-lived rotating refresh tokens.
     access_token_ttl_minutes: int = 15
     refresh_token_ttl_days: int = 30
+    #: Per-IP cap on credential attempts (login + signup) per 60s window.
+    auth_rate_limit_per_minute: int = 10
 
 
 def get_settings() -> Settings:
