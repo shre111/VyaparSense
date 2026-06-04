@@ -22,6 +22,8 @@ Public API::
         global_backtest, GlobalBacktestResult,
         build_hierarchy, Hierarchy, reconcile,      # hierarchical reconciliation
         aggregate_history, coherence_error,
+        cold_start_forecast, select_donors,         # transfer-learning cold-start
+        weekly_profile, pooled_weekly_profile,
         ModelCard, data_hash, write_card,           # model cards (reproducibility)
         card_from_global_backtest,
     )
@@ -37,6 +39,12 @@ from vyaparsense_ml.forecasting.backtest import (
 from vyaparsense_ml.forecasting.classical import (
     AutoARIMA,
     AutoETS,
+)
+from vyaparsense_ml.forecasting.cold_start import (
+    cold_start_forecast,
+    pooled_weekly_profile,
+    select_donors,
+    weekly_profile,
 )
 from vyaparsense_ml.forecasting.features import (
     build_features,
@@ -130,6 +138,7 @@ __all__ = [
     "build_hierarchy",
     "card_from_global_backtest",
     "coherence_error",
+    "cold_start_forecast",
     "compute_metrics",
     "coverage",
     "data_hash",
@@ -140,11 +149,14 @@ __all__ = [
     "mase",
     "mean_pinball_loss",
     "pinball_loss",
+    "pooled_weekly_profile",
     "quantile_backtest",
     "reconcile",
     "rmse",
+    "select_donors",
     "select_model",
     "select_per_series",
     "wape",
+    "weekly_profile",
     "write_card",
 ]
