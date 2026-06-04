@@ -49,12 +49,12 @@ Each item is one micro-issue → one micro-PR. Ordered by phase (see [plan.md](.
 - [x] `feat(api): accuracy-over-time endpoint (rolling WAPE: past forecasts vs actuals)` (#57)
 - [x] `feat(api): reorder-suggestion + simulation-KPI endpoints` (#59)
 - [x] `feat(api): as-of forecast cutoff + accuracy bucketed by horizon week (enables the hero chart)` (#69)
-- Async forecast jobs (ADR-007), sliced:
+- Async forecast jobs (ADR-007) ✅ — complete end-to-end, sliced:
   - [x] `feat(api): async forecast jobs with status polling` (#83; job model + `POST /forecast-jobs` + `GET /forecast-jobs/{id}`, interim `BackgroundTasks` transport)
   - [x] `feat(api): redis-backed worker (RQ) for forecast jobs` (#85; `forecast_queue` setting → RQ worker or inline `BackgroundTasks`; RQ chosen per ADR-011)
   - [x] `feat(api): run classical + intermittent ladder in jobs` (#87; `FULL_LADDER_MODELS` selected per-series by backtest)
   - [x] `feat(api): add the global LightGBM to the job ladder` (#89; rung 4 — `generate_forecasts_full` picks global vs per-series champions by pooled-WAPE backtest)
-  - [ ] `feat(web): forecast job-status UX (enqueue + poll)`
+  - [x] `feat(web): forecast job-status UX (enqueue + poll)` (#91; forecasts page runs the full ladder as a polled job — ADR-007 complete end-to-end)
 
 ## Phase 6 — Frontend ✅
 - [x] `feat(web): scaffold Next.js app + Tailwind + shadcn/ui` (#61)
