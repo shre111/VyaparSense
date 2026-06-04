@@ -64,6 +64,7 @@ cd packages/ml && pytest -q                       # ML tests
 
 ## Project docs
 
+- 📈 [docs/case-study.md](docs/case-study.md) — results on the sample data (honest WAPE, replenishment impact, and a documented negative)
 - 📋 [plan.md](plan.md) — technical roadmap, business case, profitability, GTM
 - 🧭 [decisions.md](decisions.md) — architecture decision records
 - 🤖 [CLAUDE.md](CLAUDE.md) — guide for AI agents / contributors
