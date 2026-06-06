@@ -12,8 +12,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className="min-h-screen antialiased">
+    // suppressHydrationWarning: some browser extensions inject attributes onto
+    // <html>/<body> before React hydrates (e.g. inject_vt_svd), which would
+    // otherwise trip a hydration mismatch. This only suppresses attribute
+    // mismatches on these two elements, not anywhere else in the tree.
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen antialiased" suppressHydrationWarning>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
