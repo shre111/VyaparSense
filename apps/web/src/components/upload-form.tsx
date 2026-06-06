@@ -58,7 +58,7 @@ export function UploadForm() {
       </form>
 
       {status.kind === "error" && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-destructive">
           {status.message}
         </p>
       )}

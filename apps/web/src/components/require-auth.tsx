@@ -36,14 +36,20 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <header className="border-b">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="container flex items-center justify-between py-3">
-          <Link href="/" className="font-semibold">
+          <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent text-xs font-bold text-primary-foreground">
+              V
+            </span>
             VyaparSense
           </Link>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span>
-              {user.email} · {user.tenant_id}
+          <div className="flex items-center gap-3 text-sm">
+            <span className="hidden text-muted-foreground sm:inline">
+              {user.email}
+              <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+                {user.tenant_id}
+              </span>
             </span>
             <Button variant="outline" size="sm" onClick={logout}>
               Log out

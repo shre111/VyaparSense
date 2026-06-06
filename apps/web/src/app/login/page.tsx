@@ -12,7 +12,7 @@ import { ApiError } from "@/lib/api";
 type Mode = "login" | "signup";
 
 export default function LoginPage() {
-  const { login, signup } = useAuth();
+  const { user, loading, login, signup } = useAuth();
   const router = useRouter();
   const [mode, setMode] = React.useState<Mode>("login");
   const [tenantId, setTenantId] = React.useState("demo");
@@ -20,6 +20,11 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+
+  // Already signed in? Don't show the login form — send them into the app.
+  React.useEffect(() => {
+    if (!loading && user !== null) router.replace("/upload");
+  }, [loading, user, router]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -31,7 +36,8 @@ export default function LoginPage() {
       } else {
         await signup(tenantId.trim(), email.trim(), password);
       }
-      router.replace("/");
+      // Land inside the app (not the marketing page) so it's clear you're in.
+      router.replace("/upload");
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "Could not reach the API. Is the backend running?",
@@ -42,8 +48,18 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="container flex min-h-screen max-w-md flex-col justify-center py-16">
-      <Card>
+    <main className="bg-hero flex min-h-screen flex-col items-center justify-center px-4 py-16">
+      <div className="w-full max-w-md">
+      <Link
+        href="/"
+        className="mb-6 flex items-center justify-center gap-2 text-lg font-semibold tracking-tight"
+      >
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent text-sm font-bold text-primary-foreground">
+          V
+        </span>
+        VyaparSense
+      </Link>
+      <Card className="shadow-lg">
         <CardHeader>
           <CardTitle>{mode === "login" ? "Log in" : "Create your account"}</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -61,7 +77,7 @@ export default function LoginPage() {
                   value={tenantId}
                   onChange={(e) => setTenantId(e.target.value)}
                   required
-                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="h-10 rounded-lg border border-input bg-card px-3 text-sm transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                   placeholder="your-company"
                 />
               </label>
@@ -74,7 +90,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 rounded-lg border border-input bg-card px-3 text-sm transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                 placeholder="you@company.com"
               />
             </label>
@@ -87,13 +103,13 @@ export default function LoginPage() {
                 required
                 minLength={mode === "signup" ? 8 : undefined}
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 rounded-lg border border-input bg-card px-3 text-sm transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                 placeholder={mode === "signup" ? "at least 8 characters" : "password"}
               />
             </label>
 
             {error && (
-              <p role="alert" className="text-sm text-red-600">
+              <p role="alert" className="text-sm text-destructive">
                 {error}
               </p>
             )}
@@ -125,6 +141,7 @@ export default function LoginPage() {
           ← Back home
         </Link>
       </p>
+      </div>
     </main>
   );
 }
