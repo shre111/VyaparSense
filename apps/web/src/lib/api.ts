@@ -261,14 +261,24 @@ const _TERMINAL: ReadonlySet<ForecastJobState> = new Set(["completed", "failed"]
 /**
  * Poll a forecast job until it reaches a terminal state (`completed`/`failed`),
  * calling `onUpdate` with each status. Rejects on timeout.
+ *
+ * The interval backs off (1s → capped at `maxIntervalMs`) so a long-running job
+ * doesn't hammer the API once a second. The timeout is generous because the full
+ * ladder over a lot of history is genuinely slow in the in-process (inline) mode.
  */
 export async function pollForecastJob(
   jobId: number,
-  opts: { intervalMs?: number; timeoutMs?: number; onUpdate?: (s: ForecastJobStatus) => void } = {},
+  opts: {
+    intervalMs?: number;
+    maxIntervalMs?: number;
+    timeoutMs?: number;
+    onUpdate?: (s: ForecastJobStatus) => void;
+  } = {},
 ): Promise<ForecastJobStatus> {
-  const intervalMs = opts.intervalMs ?? 1000;
-  const timeoutMs = opts.timeoutMs ?? 120_000;
+  const maxIntervalMs = opts.maxIntervalMs ?? 5_000;
+  const timeoutMs = opts.timeoutMs ?? 600_000; // 10 min — heavy jobs run inline
   const deadline = Date.now() + timeoutMs;
+  let delay = opts.intervalMs ?? 1_000;
   for (;;) {
     const status = await getForecastJob(jobId);
     opts.onUpdate?.(status);
@@ -276,7 +286,8 @@ export async function pollForecastJob(
     if (Date.now() >= deadline) {
       throw new ApiError(408, "Timed out waiting for the forecast job to finish.");
     }
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    delay = Math.min(maxIntervalMs, Math.round(delay * 1.5)); // back off
   }
 }
 
