@@ -43,6 +43,25 @@ export function ForecastExplorer() {
   const [status, setStatus] = React.useState<Status>({ kind: "idle" });
   const [selected, setSelected] = React.useState<string | null>(null);
 
+  // Show any forecasts already computed by a previous job so a completed run is
+  // visible without re-running the (slow) ladder — and so a client-side poll
+  // timeout doesn't hide results the backend has already stored.
+  React.useEffect(() => {
+    let active = true;
+    getForecasts()
+      .then((items) => {
+        if (!active || items.length === 0) return;
+        setStatus({ kind: "ready", items });
+        setSelected(seriesKey(items[0]));
+      })
+      .catch(() => {
+        /* no existing forecasts / not signed in yet — stay idle */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   async function handleRun(event: React.FormEvent) {
     event.preventDefault();
     setStatus({ kind: "running", state: "queued" });
@@ -51,6 +70,9 @@ export function ForecastExplorer() {
       // Forecasts run as an async job (ADR-007): enqueue, poll, then read.
       const job = await createForecastJob(7);
       const done = await pollForecastJob(job.job_id, {
+        // The inline ladder (statsforecast + global LightGBM over full history)
+        // can run well past 10 min on a dev box; give it room to finish.
+        timeoutMs: 1_800_000,
         onUpdate: (s) => setStatus({ kind: "running", state: s.status }),
       });
       if (done.status === "failed") {
@@ -107,7 +129,7 @@ export function ForecastExplorer() {
       </form>
 
       {status.kind === "error" && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-destructive">
           {status.message}
         </p>
       )}
