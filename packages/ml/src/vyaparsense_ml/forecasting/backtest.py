@@ -47,12 +47,18 @@ def backtest(
     horizon: int = 1,
     step: int = 1,
     season_length: int = 1,
+    max_folds: int | None = None,
 ) -> BacktestResult:
     """Expanding-window backtest of ``model`` over series ``y``.
 
     Folds start with ``y[:min_train_size]`` and advance the cutoff by ``step``
     while a full ``horizon`` of actuals remains. ``season_length`` only scales
     the pooled MASE; it does not change the folds.
+
+    ``max_folds`` caps the backtest to the **most recent** ``max_folds`` origins
+    (still expanding-window — each fold trains on its full prefix). This bounds
+    the cost of model *selection* on long histories without affecting the final
+    forward forecast, which is made separately on the full series.
 
     Raises:
         ValueError: invalid parameters, or the series is too short for even one
@@ -64,10 +70,22 @@ def backtest(
         raise ValueError(f"horizon must be >= 1, got {horizon}")
     if step < 1:
         raise ValueError(f"step must be >= 1, got {step}")
+    if max_folds is not None and max_folds < 1:
+        raise ValueError(f"max_folds must be >= 1, got {max_folds}")
 
     n = len(y)
+    # First cutoff: usually min_train_size, but advanced to keep only the most
+    # recent max_folds origins when the history is long.
+    first_cutoff = min_train_size
+    if max_folds is not None:
+        last_cutoff = n - horizon
+        if last_cutoff >= min_train_size:
+            n_all = (last_cutoff - min_train_size) // step + 1
+            if n_all > max_folds:
+                first_cutoff = min_train_size + (n_all - max_folds) * step
+
     folds: list[BacktestFold] = []
-    cutoff = min_train_size
+    cutoff = first_cutoff
     while cutoff + horizon <= n:
         train = y[:cutoff]
         actual = [float(v) for v in y[cutoff : cutoff + horizon]]

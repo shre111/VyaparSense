@@ -56,6 +56,14 @@ FULL_LADDER_MODELS: list[Baseline] = [
 # Backtest defaults: weekly origins after a four-week warmup, season length 7.
 _MIN_TRAIN_SIZE = 28
 _STEP = 7
+# Cap model-selection to the most recent N rolling origins so jobs stay fast on
+# long histories (the per-series ladder refits classical models per fold). The
+# forward forecast still uses the full series; only *which model* is chosen looks
+# at recent performance.
+_MAX_SELECTION_FOLDS = 8
+# Forecast from at most the most recent N days of history (keeps classical
+# refits fast on long histories; a short horizon doesn't need years of data).
+_FORECAST_WINDOW_DAYS = 120
 
 # The global model's lag/rolling features (up to a 28-day window) need more
 # warmup than the per-series baselines, so its backtest uses a larger floor.
@@ -121,6 +129,7 @@ def generate_forecasts(
         horizon=horizon,
         step=_STEP,
         season_length=season_length,
+        max_folds=_MAX_SELECTION_FOLDS,
     )
     return _champion_rows(eligible, selection, candidates, horizon)
 
@@ -205,6 +214,12 @@ def generate_forecasts_full(
     candidates = list(models) if models is not None else FULL_LADDER_MODELS
     if as_of is not None:
         records = [r for r in records if r.date <= as_of]
+    # Forecast from a recent window: a 7-day horizon doesn't need years of daily
+    # history, and bounding it keeps the classical refits (AutoARIMA especially)
+    # fast no matter how much history a tenant has accumulated.
+    if records:
+        window_start = max(r.date for r in records) - dt.timedelta(days=_FORECAST_WINDOW_DAYS)
+        records = [r for r in records if r.date >= window_start]
 
     series: dict[SeriesKey, list[tuple[dt.date, int]]] = {}
     records_by_key: dict[SeriesKey, list[SalesRecord]] = {}
@@ -225,6 +240,7 @@ def generate_forecasts_full(
         horizon=horizon,
         step=_STEP,
         season_length=season_length,
+        max_folds=_MAX_SELECTION_FOLDS,
     )
     champion_wape = _pooled_champion_wape(selection)
     champion_rows = _champion_rows(eligible, selection, candidates, horizon)
