@@ -37,8 +37,13 @@ def select_model(
     horizon: int = 1,
     step: int = 1,
     season_length: int = 1,
+    max_folds: int | None = None,
 ) -> SelectionResult:
-    """Backtest every model on ``y`` and pick the lowest pooled WAPE."""
+    """Backtest every model on ``y`` and pick the lowest pooled WAPE.
+
+    ``max_folds`` caps selection to the most recent folds (see
+    :func:`~vyaparsense_ml.forecasting.backtest.backtest`).
+    """
     if not models:
         raise ValueError("need at least one candidate model")
     results: dict[str, BacktestResult] = {}
@@ -50,6 +55,7 @@ def select_model(
             horizon=horizon,
             step=step,
             season_length=season_length,
+            max_folds=max_folds,
         )
     ranking = sorted(
         ((name, result.metrics.wape) for name, result in results.items()),
@@ -66,11 +72,13 @@ def select_per_series(
     horizon: int = 1,
     step: int = 1,
     season_length: int = 1,
+    max_folds: int | None = None,
 ) -> dict[SeriesKey, SelectionResult]:
     """Select the best model for every series from :func:`cleaning.to_series`.
 
     Each series must be long enough for at least one backtest fold; otherwise
-    :func:`select_model` raises for that series.
+    :func:`select_model` raises for that series. ``max_folds`` caps selection to
+    the most recent folds (cheap on long histories).
     """
     out: dict[SeriesKey, SelectionResult] = {}
     for key, points in series.items():
@@ -82,5 +90,6 @@ def select_per_series(
             horizon=horizon,
             step=step,
             season_length=season_length,
+            max_folds=max_folds,
         )
     return out
