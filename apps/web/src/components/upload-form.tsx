@@ -36,26 +36,30 @@ export function UploadForm() {
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Sales history CSV
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="text-sm file:mr-4 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm"
-          />
-        </label>
+      <Card>
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <label className="flex flex-col gap-2 text-sm font-medium">
+              Sales history CSV
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className="cursor-pointer rounded-lg border border-input bg-card text-sm text-muted-foreground transition-colors file:mr-4 file:cursor-pointer file:border-0 file:bg-secondary file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/70"
+              />
+            </label>
 
-        <Button type="submit" disabled={!file || uploading} className="self-start">
-          {uploading ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          ) : (
-            <UploadCloud className="h-4 w-4" aria-hidden />
-          )}
-          {uploading ? "Uploading…" : "Upload"}
-        </Button>
-      </form>
+            <Button type="submit" disabled={!file || uploading} className="self-start">
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <UploadCloud className="h-4 w-4" aria-hidden />
+              )}
+              {uploading ? "Uploading…" : "Upload"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {status.kind === "error" && (
         <p role="alert" className="text-sm text-destructive">
@@ -78,8 +82,8 @@ function UploadResult({ summary }: { summary: UploadSummary }) {
           Upload #{summary.upload_id} · tenant {summary.tenant_id}
         </p>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex gap-8">
+      <CardContent className="flex flex-col gap-5">
+        <div className="grid grid-cols-2 gap-3 sm:max-w-sm">
           <Stat label="Rows" value={summary.row_count.toLocaleString()} />
           <Stat label="Series" value={summary.series_count.toLocaleString()} />
         </div>
@@ -90,9 +94,10 @@ function UploadResult({ summary }: { summary: UploadSummary }) {
               {patterns.map(([pattern, count]) => (
                 <li
                   key={pattern}
-                  className="rounded-full border px-3 py-1 text-xs text-muted-foreground"
+                  className="rounded-full border bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
                 >
-                  {pattern}: {count}
+                  {pattern}
+                  <span className="ml-1 text-muted-foreground">{count}</span>
                 </li>
               ))}
             </ul>
@@ -105,8 +110,8 @@ function UploadResult({ summary }: { summary: UploadSummary }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <p className="text-2xl font-bold">{value}</p>
+    <div className="rounded-lg border bg-secondary/40 p-3">
+      <p className="text-2xl font-bold tabular-nums">{value}</p>
       <p className="text-sm text-muted-foreground">{label}</p>
     </div>
   );

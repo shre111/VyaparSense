@@ -8,6 +8,8 @@ import {
   type ReorderItem,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { fieldClass } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -48,7 +50,7 @@ function NumberField({
         min={min}
         max={max}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-10 w-32 rounded-md border border-input bg-background px-3 text-sm"
+        className={`${fieldClass} w-32`}
       />
     </label>
   );
@@ -77,32 +79,36 @@ export function ReorderTable() {
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
-        <NumberField
-          label="Lead time (days)"
-          value={leadTimeDays}
-          onChange={setLeadTimeDays}
-          min={1}
-          max={90}
-        />
-        <NumberField
-          label="Service level"
-          value={serviceLevel}
-          onChange={setServiceLevel}
-          step="0.01"
-          min={0.5}
-          max={0.999}
-        />
-        <NumberField label="On hand" value={onHand} onChange={setOnHand} min={0} />
-        <Button type="submit" disabled={status.kind === "loading"}>
-          {status.kind === "loading" ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          ) : (
-            <PackageCheck className="h-4 w-4" aria-hidden />
-          )}
-          {status.kind === "loading" ? "Computing…" : "Get suggestions"}
-        </Button>
-      </form>
+      <Card>
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
+            <NumberField
+              label="Lead time (days)"
+              value={leadTimeDays}
+              onChange={setLeadTimeDays}
+              min={1}
+              max={90}
+            />
+            <NumberField
+              label="Service level"
+              value={serviceLevel}
+              onChange={setServiceLevel}
+              step="0.01"
+              min={0.5}
+              max={0.999}
+            />
+            <NumberField label="On hand" value={onHand} onChange={setOnHand} min={0} />
+            <Button type="submit" disabled={status.kind === "loading"}>
+              {status.kind === "loading" ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <PackageCheck className="h-4 w-4" aria-hidden />
+              )}
+              {status.kind === "loading" ? "Computing…" : "Get suggestions"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {status.kind === "error" && (
         <p role="alert" className="text-sm text-destructive">
@@ -118,8 +124,9 @@ export function ReorderTable() {
       )}
 
       {status.kind === "ready" && status.rows.length > 0 && (
+        <Card className="overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-secondary/50">
             <TableRow>
               <TableHead>Store</TableHead>
               <TableHead>SKU</TableHead>
@@ -151,17 +158,20 @@ export function ReorderTable() {
                 </TableCell>
                 <TableCell>
                   {r.should_reorder ? (
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                    <span className="inline-flex items-center rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
                       reorder
                     </span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">ok</span>
+                    <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                      ok
+                    </span>
                   )}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+        </Card>
       )}
     </div>
   );
