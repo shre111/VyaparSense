@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LineChart, PackageCheck, TrendingDown, Upload } from "lucide-react";
 import { AccuracyDemo } from "@/components/accuracy-demo";
 import { GetStartedButton } from "@/components/get-started-button";
+import { SiteFooter } from "@/components/site-footer";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -55,7 +56,8 @@ function StepCard({
 
 export default function Home() {
   return (
-    <main className="container py-16">
+    <>
+      <main className="container py-16">
       {/* Hero */}
       <section className="bg-hero -mx-4 mb-4 rounded-3xl px-4 py-10">
         <div className="mx-auto max-w-3xl text-center">
@@ -167,6 +169,8 @@ export default function Home() {
           <GetStartedButton />
         </div>
       </section>
-    </main>
+      </main>
+      <SiteFooter />
+    </>
   );
 }
