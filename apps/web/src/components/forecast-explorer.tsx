@@ -21,6 +21,7 @@ import {
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { fieldClass } from "@/components/ui/input";
 
 type Status =
   | { kind: "idle" }
@@ -114,19 +115,23 @@ export function ForecastExplorer() {
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={handleRun} className="flex items-end gap-3">
-        <Button type="submit" disabled={running}>
-          {running ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          ) : (
-            <LineChartIcon className="h-4 w-4" aria-hidden />
-          )}
-          {runLabel}
-        </Button>
-        <p className="text-xs text-muted-foreground">
-          Runs the full model ladder as a background job.
-        </p>
-      </form>
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-6">
+          <form onSubmit={handleRun}>
+            <Button type="submit" disabled={running}>
+              {running ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <LineChartIcon className="h-4 w-4" aria-hidden />
+              )}
+              {runLabel}
+            </Button>
+          </form>
+          <p className="text-xs text-muted-foreground">
+            Runs the full model ladder as a background job.
+          </p>
+        </CardContent>
+      </Card>
 
       {status.kind === "error" && (
         <p role="alert" className="text-sm text-destructive">
@@ -151,7 +156,7 @@ export function ForecastExplorer() {
                 <select
                   value={selected ?? ""}
                   onChange={(e) => setSelected(e.target.value)}
-                  className="ml-2 h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+                  className={`${fieldClass} ml-2 h-9`}
                 >
                   {seriesKeys.map((key) => (
                     <option key={key} value={key}>

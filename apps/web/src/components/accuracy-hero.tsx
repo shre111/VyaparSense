@@ -21,6 +21,7 @@ import {
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { fieldClass } from "@/components/ui/input";
 
 type Status =
   | { kind: "idle" }
@@ -74,31 +75,35 @@ export function AccuracyHero() {
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={handleLoad} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          History ends
-          <input
-            type="date"
-            value={historyEnd}
-            onChange={(e) => setHistoryEnd(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          />
-        </label>
-        <Button type="submit" variant="outline" disabled={working}>
-          {working && status.label === "Loading…" ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          ) : null}
-          Load
-        </Button>
-        <Button type="button" onClick={handleBackfill} disabled={working}>
-          {working && status.label.startsWith("Building") ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          ) : (
-            <Sparkles className="h-4 w-4" aria-hidden />
-          )}
-          Build accuracy history
-        </Button>
-      </form>
+      <Card>
+        <CardContent className="pt-6">
+          <form onSubmit={handleLoad} className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              History ends
+              <input
+                type="date"
+                value={historyEnd}
+                onChange={(e) => setHistoryEnd(e.target.value)}
+                className={fieldClass}
+              />
+            </label>
+            <Button type="submit" variant="outline" disabled={working}>
+              {working && status.label === "Loading…" ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : null}
+              Load
+            </Button>
+            <Button type="button" onClick={handleBackfill} disabled={working}>
+              {working && status.label.startsWith("Building") ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Sparkles className="h-4 w-4" aria-hidden />
+              )}
+              Build accuracy history
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {status.kind === "error" && (
         <p role="alert" className="text-sm text-destructive">
@@ -173,7 +178,7 @@ function KpiCards({ kpis }: { kpis: KpiComparison }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="flex items-center gap-2 text-2xl font-bold text-primary">
+          <p className="flex items-center gap-2 text-2xl font-bold text-accent">
             <TrendingDown className="h-5 w-5" aria-hidden />
             {pct(kpis.lost_sales_reduction_pct)}
           </p>
