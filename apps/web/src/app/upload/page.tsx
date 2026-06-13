@@ -6,7 +6,7 @@ import { RequireAuth } from "@/components/require-auth";
 import { UploadForm } from "@/components/upload-form";
 
 export const metadata: Metadata = {
-  title: "Upload sales history — VyaparSense",
+  title: "Upload sales history",
 };
 
 export default function UploadPage() {

@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
 
 export const metadata: Metadata = {
-  title: "Reorder suggestions — VyaparSense",
+  title: "Reorder suggestions",
 };
 
 export default function ReorderPage() {

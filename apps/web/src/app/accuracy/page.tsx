@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { RequireAuth } from "@/components/require-auth";
 
 export const metadata: Metadata = {
-  title: "Accuracy over time — VyaparSense",
+  title: "Accuracy over time",
 };
 
 export default function AccuracyPage() {
