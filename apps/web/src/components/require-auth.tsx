@@ -49,14 +49,14 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
         <div className="container flex h-14 items-center gap-3 sm:gap-5">
           <Link
             href="/"
-            className="flex items-center gap-2 font-semibold tracking-tight"
+            className="flex shrink-0 items-center gap-2 font-semibold tracking-tight"
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent text-xs font-bold text-primary-foreground">
               V
             </span>
             <span className="hidden sm:inline">VyaparSense</span>
           </Link>
-          <nav className="flex items-center gap-1 text-sm">
+          <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {NAV.map((item) => {
               const active = pathname === item.href;
               return (
@@ -65,7 +65,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "rounded-lg px-2.5 py-1.5 transition-colors sm:px-3",
+                    "shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 transition-colors sm:px-3",
                     active
                       ? "bg-secondary font-medium text-foreground"
                       : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
@@ -76,7 +76,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
-          <div className="ml-auto flex items-center gap-3 text-sm">
+          <div className="flex shrink-0 items-center gap-3 text-sm">
             <span className="hidden text-muted-foreground md:inline">
               {user.email}
               <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
